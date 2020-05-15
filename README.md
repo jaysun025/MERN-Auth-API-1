@@ -16,6 +16,7 @@ First let's quickly set up a basic project environment.
 1. Run `git init` to initialize the repository for Git.
 1. Create a `.gitignore` and add the node_modules directory to it with `echo node_modules > .gitignore`
 1. Create an `index.js` file with `touch index.js`.
+1. Create some directories inside your project to organize your code with `mkdir models db controllers middleware`.
 1. Run `npm init -y` to initialize the repository for npm.
 1. Install dependencies with `npm i express cors mongoose dotenv`.
 1. Install `nodemon` as a devDependency with `npm i -D nodemon`.
@@ -36,8 +37,8 @@ First let's quickly set up a basic project environment.
 job-board-api
     ├── index.js
     ├── controllers
+    ├── models
     └── db
-        └── models
 ```
 <!-- INIT_DIRECTORY_DIAGRAM - START -->
 <!-- prettier-ignore-end -->
@@ -52,8 +53,6 @@ git commit -m "Initial commit"
 13. Create a new repository on GitHub and copy the code in the section that reads: **`…or push an existing repository from the command line`** by clicking the copy icon on the right side of the code block.
 1. Paste the code in the Terminal window.
 
-[View Commit](../../commit/5126d02)
-
 ### Connect to MongoDB
 
 1. Create a file in the `db` directory called `connection.js` and add the following code:
@@ -63,10 +62,10 @@ const mongoose = require('mongoose');
 
 mongoose
   .connect('mongodb://localhost/job-board')
-  .then(instance =>
+  .then((instance) =>
     console.log(`Connected to db: ${instance.connections[0].name}`)
   )
-  .catch(error => console.log('Connection failed!', error));
+  .catch((error) => console.log('Connection failed!', error));
 
 module.exports = mongoose;
 ```
@@ -118,15 +117,15 @@ mongoose
     useNewUrlParser: true,
     useCreateIndex: true,
     useUnifiedTopology: true,
-    useFindAndModify: false
+    useFindAndModify: false,
   })
   // If the connection is successful, give a message in the Terminal with the db name
-  .then(instance =>
+  .then((instance) =>
     console.log(`Connected to db: ${instance.connections[0].name}`)
   )
   // If the connection fails, give a message and pass along the error so we see it in
   // the Terminal.
-  .catch(error => console.log('Connection failed!', error));
+  .catch((error) => console.log('Connection failed!', error));
 
 // Export the connection so we can use it elsewhere in our app.
 module.exports = mongoose;
@@ -134,30 +133,29 @@ module.exports = mongoose;
 
 6. Save and close the file in VS Code and back in the Terminal, type `control + C` to stop the process that's running and return to the command prompt. Add and commit your changes!
 
-[View Commit](../../commit/ec0c57f)
-
 ### Create the Job Model
 
-1. In the models directory, create a file called `job_model.js`.
+1. In the models directory, create a file called `Job.js`.
 1. First thing we need to do is create a variable called `mongoose` that stores the connection to our database using `require()` to bring in our `connection.js` file.
 1. Next, we'll create a very basic job schema. It should have a `title`, which is a `String` type and is required, and a `description` that will simply be a `String`. We should also use `timestamps` so that we know when the job posting was created and updated.
-1. Lastly, we'll use the schema to create our model. We'll name the model `Job` (singular and capitalized) so that Mongoose knows to create a collection in our database called `jobs` and use this schema to validate the data against for that collection. We're going to need this model elsewhere in our app, so make sure to export it.
+1. We'll use the schema to create our model. We'll name the model `Job` (singular and capitalized) so that Mongoose knows to create a collection in our database called `jobs` and use this schema to validate the data against for that collection.
+1. Lastly, we're going to need this model elsewhere in our app, so make sure to export it.
 
 Your final model should look like this:
 
 ```js
-const mongoose = require('../connection');
+const mongoose = require('../db/connection');
 
 const jobSchema = new mongoose.Schema(
   {
     title: {
       type: String,
-      required: true
+      required: true,
     },
-    description: String
+    description: String,
   },
   {
-    timestamps: true
+    timestamps: true,
   }
 );
 
@@ -182,11 +180,11 @@ module.exports = mongoose.model('Job', jobSchema);
     "title": "Junior Software Developer",
     "description": "As a Junior Software Developer focused on Deployments, you will work with our Operations Team to successfully configure and develop our service offerings for world-class enterprises."
   }
-[
+]
 ```
 
-2. Next, create a `seeds.js` file, also inside the `db` directory.
-1. Inside the `db/seeds.js` file require the `job_model.js` file and store it in a variable named `Job`.
+2. Next, create a `seed.js` file, also inside the `db` directory.
+1. Inside the `db/seed.js` file require the `Job.js` file and store it in a variable named `Job`.
 1. After the model, require the `seeds.json` file.
 1. Now, create a Mongoose query that deletes all of the existing documents in the jobs collection. This will start a promise chain so we can use `.then()`, `.catch()`, and `.finally()` methods to chain our insert operation.
 1. Use `.then()` with an anonymous function that returns the results of inserting the data from the `seeds.json` file using Mongoose's `.insertMany()` method.
@@ -198,7 +196,7 @@ The final result should look like this:
 
 ```js
 /// Require the Job model
-const Job = require('./models/job_model');
+const Job = require('../models/Job');
 // Require the data
 const seedData = require('./seeds.json');
 
@@ -215,10 +213,8 @@ Job.deleteMany()
   .finally(process.exit);
 ```
 
-10. Run the `seeds.js` file in the Terminal with `node db/seeds.json`. You should see the results in the Terminal when done. If you receive an error, check to make sure that your files are in the right directory and that MongoDB is running.
+10. Run the `seed.js` file in the Terminal with `node db/seed.js`. You should see the results in the Terminal when done. If you receive an error, check to make sure that your files are in the right directory and that MongoDB is running.
 1. w00t w00t :raised_hands:! Time to add and commit your changes.
-
-[View Commit](../../commit/f2d4dd6)
 
 ### Setup a Server
 
@@ -265,12 +261,12 @@ app.use(express.json());
 // a specific content type (such as when using Axios)
 app.use(express.urlencoded({ extended: true }));
 
-// Define port for API to run on, if the environment
+// Define a port for API to run on, if the environment
 // variable called `PORT` is not found use port 4000
-const port = process.env.PORT || 4000;
+app.set('port', process.env.PORT || 4000);
 // Run server on designated port
-app.listen(port, () => {
-  console.log('listening on port ' + port);
+app.listen(app.get('port'), () => {
+  console.log('listening on port ' + app.get('port'));
 });
 ```
 
@@ -291,11 +287,11 @@ So now that we have our server running, we'll need to create some routes for our
 | /resource/:id |  DELETE   | Delete | destroy | 204 No content  |        404         |
 
 1. Create a new file called `jobs.js` in the `controllers` directory.
-1. Set up your basic file by requiring Express, which we'll need to create a router, and the Job model from the `db/models` directory. Create a router and export it. The basic file should look like this:
+1. Set up your basic file by requiring Express, which we'll need to create a router, and the Job model from the `models` directory. Create a router and export it. The basic file should look like this:
 
 ```js
 const express = require('express');
-const Job = require('../db/models/job_model');
+const Job = require('../models/Job');
 
 const router = express.Router();
 
@@ -337,7 +333,7 @@ router.get('/', (req, res) => {
   // When found, they are passed down the promise chain
   // to the `.then()` where we send the response as JSON
   // with `res.json` and pass it any jobs found
-  Job.find().then(jobs => res.json(jobs));
+  Job.find().then((jobs) => res.json(jobs));
 });
 ```
 
@@ -345,27 +341,35 @@ router.get('/', (req, res) => {
 
 ```js
 router.get('/:id', (req, res) => {
-  Job.findById(req.params.id).then(job => res.json(job));
+  Job.findById(req.params.id).then((job) => res.json(job));
 });
 ```
 
-6. For update, we'll use Mongoose's `.findOneAndUpdate()`. This method takes three arguments. The first argument is the query filter used to locate the document by its id. The second argument is the data in the request's body object, which should be our newly updated document. The third argument is an object that contains any options for this method. If we set the `new` property to `true` in the options object, Mongoose will return the newly updated document, which is then passed down the promise chain where we can send it back in the response.
+6. For post, we'll use the `.create()` method and pass it the request body:
+
+```js
+router.post('/', (req, res) => {
+  Job.create(req.body).then((job) => res.json(job));
+});
+```
+
+7. For update, we'll use Mongoose's `.findOneAndUpdate()`. This method takes three arguments. The first argument is the query filter used to locate the document by its id. The second argument is the data in the request's body object, which should be our newly updated document. The third argument is an object that contains any options for this method. If we set the `new` property to `true` in the options object, Mongoose will return the newly updated document, which is then passed down the promise chain where we can send it back in the response.
 
 ```js
 router.put('/:id', (req, res) => {
   Job.findOneAndUpdate({ _id: req.params.id }, req.body, {
-    new: true
-  }).then(job => res.json(job));
+    new: true,
+  }).then((job) => res.json(job));
 });
 ```
 
-7. For delete, we'll use the `.findOneAndDelete()` method and pass it an object with the id to use as the query filter.
+8. For delete, we'll use the `.findOneAndDelete()` method and pass it an object with the id to use as the query filter.
 
 ```js
 router.delete('/:id', (req, res) => {
   Job.findOneAndDelete({
-    _id: req.params.id
-  }).then(job => res.json(job));
+    _id: req.params.id,
+  }).then((job) => res.json(job));
 });
 ```
 
@@ -391,8 +395,6 @@ app.use('/api/jobs', jobController);
 
 If you were able to CRUD in Postman, congrats to you! :clap: ... but we've still got some work to do so no :champagne: :clinking_glasses: yet. Go ahead and add and commit up to this milestone.
 
-[View Commit](../../commit/7beb658)
-
 ### HTTP Status Codes
 
 Our Express API is coming along, but before we add our User model, we need to fix some things. So far, we're kind of breaking a lot of rules when it comes to the HTTP request-response cycle. For one, we're not responding to **all** requests &mdash; only the ones that execute flawlessly. We're not handling any of the error cases. ExpressJS will help us out with some errors by sending a generic 500 server error, but in many cases, we're on our own and the system is simply left to hang :frowning:.
@@ -405,7 +407,7 @@ Another issue is that we're not setting the status codes on our responses, so ev
 
 Next, let's deal with the error codes. The most common will be the 404 case. A `404 Not Found` can occur anytime that we expect an id to be used as part of the URI endpoint because it's possible that the document associated with that id doesn't exist.
 
-1. For both of the put and get routes, update the `.then()` method as follows:
+1. For both the put and show routes, update the `.then()` method as follows:
 
 ```js
   .then(job => {
@@ -439,7 +441,7 @@ This will _sort of_ work. As long as the id we provide looks like a Mongo id, we
 
 #### Middleware in a Nutshell
 
-Pretty much everything in Express is a form of middleware. Whenever a request is recieved by the server, each piece of middleware is called in the order that it is _used_ in our index file (i.e., where it is invoked with `app.use()`). Each middleware is passed the request and the response objects from Express as arguments along with a third argument that is commonly referred to as `next`. So, any middleware can use the values in the request object or even send a response back to the client. More often than not though, middleware will simply do _‘something’_ and then pass the request on to the next piece of middleware in the chain until it reaches one of our controllers where we are explicitly handling the response.
+Pretty much everything in Express is a form of middleware. Whenever a request is received by the server, each piece of middleware is called in the order that it is _used_ in our index file (i.e., where it is invoked with `app.use()`). Each middleware is passed the request and the response objects from Express as arguments along with a third argument method that is commonly referred to as `next`. So, any middleware can use the values in the request object or even send a response back to the client. More often than not though, middleware will simply do _‘something’_ and then pass the request on to the next piece of middleware in the chain until it reaches one of our controllers where we are explicitly handling the response.
 
 It turns out that our controllers are also a form of middleware, meaning that they too can be passed a `next` argument. This is helpful to handle errors that occur. Let’s change all of our controllers to include a third parameter called `next` and then we'll use a promise `.catch()` method and pass it `next` as it argument. With this change, our controllers will now look like this:
 
@@ -451,7 +453,7 @@ router.get('/', (req, res, next) => {
   // in the jobs collection
   // Then send all of the jobs back as json
   Job.find()
-    .then(jobs => res.json(jobs))
+    .then((jobs) => res.json(jobs))
     .catch(next);
 });
 
@@ -459,7 +461,7 @@ router.get('/', (req, res, next) => {
 // GET api/jobs/5a7db6c74d55bc51bdf39793
 router.get('/:id', (req, res, next) => {
   Job.findById(req.params.id)
-    .then(job => {
+    .then((job) => {
       if (!job) {
         res.sendStatus(404);
       } else {
@@ -473,7 +475,7 @@ router.get('/:id', (req, res, next) => {
 // POST api/jobs
 router.post('/', (req, res, next) => {
   Job.create(req.body)
-    .then(job => res.status(201).json(job))
+    .then((job) => res.status(201).json(job))
     .catch(next);
 });
 
@@ -481,9 +483,9 @@ router.post('/', (req, res, next) => {
 // PUT api/jobs/5a7db6c74d55bc51bdf39793
 router.put('/:id', (req, res, next) => {
   Job.findOneAndUpdate({ _id: req.params.id }, req.body, {
-    new: true
+    new: true,
   })
-    .then(job => {
+    .then((job) => {
       if (!job) {
         res.sendStatus(404);
       } else {
@@ -497,9 +499,9 @@ router.put('/:id', (req, res, next) => {
 // DELETE api/jobs/5a7db6c74d55bc51bdf39793
 router.delete('/:id', (req, res, next) => {
   Job.findOneAndDelete({
-    _id: req.params.id
+    _id: req.params.id,
   })
-    .then(job => {
+    .then((job) => {
       if (!job) {
         res.sendStatus(404);
       } else {
@@ -513,8 +515,6 @@ router.delete('/:id', (req, res, next) => {
 Try making a GET request to `http://localhost:4000/api/jobs/123` from Postman or the browser again and you'll see that instead of hanging and eventually timing out, we'll get an immediate response. In the Terminal, you'll also see that we no longer get the `UnhandledPromiseRejectionWarning`. This is a better result, but it's still not great. Notice that the error is a generic `500 Internal Server Error` and it's automatically sending along the entire error to the client. Although Express won't send a stack trace to the client in production environments, this error reveals some details about our back end implementation and that's a security risk. Fortunately, this can be fixed pretty easily in Express.
 
 For now, lets add and commit our changes before we move on to handling potential errors.
-
-[View Commit](../../commit/907c794)
 
 ### Handling Errors in Express APIs
 
@@ -548,7 +548,6 @@ Any time an error is thrown in a promise chain, it will be handled by the `.catc
 
 We can take advantage of this by creating some custom errors that we can throw when we want to control exactly what is sent back to the client!
 
-1. First let's create a new directory for our middleware, which we'll name `middleware`.
 1. Create a new file inside the new `middleware` directory called `custom_errors.js`.
 1. Inside `custom_errors.js`, we'll start by defining a bunch of custom error types. The easiest way to do this is with ES6 class syntax. Add the following code to `custom_errors.js` file:
 
@@ -608,7 +607,7 @@ class InvalidIdError extends Error {
 }
 ```
 
-4. Now we'll write some functions that we can export and use elsewhere in our code to handle the errors described above. We’ll also move the generic middleware function that we added to the `index.js` file into our new `custom_errors.js` file. This will keep all of our error handling code in one place and make our `index.js` file a little easier to read. After the custom error classes in the `custom_errors.js` file, add the following methods and export them so we can use them in our controllers:
+4. Now we'll write some functions that we can export and use elsewhere in our code to handle the errors described above. We’ll also move the generic error handling function that we added to the `index.js` file into our new `custom_errors.js` file. This will keep all of our error handling code in one place and make our `index.js` file a little easier to read. After the custom error classes in the `custom_errors.js` file, add the following methods and export them so we can use them in our controllers:
 
 ```js
 const handleValidateOwnership = (requestObject, resource) => {
@@ -617,7 +616,7 @@ const handleValidateOwnership = (requestObject, resource) => {
   }
 };
 
-const handleRecordExists = record => {
+const handleRecordExists = (record) => {
   if (!record) {
     throw new DocumentNotFoundError();
   } else {
@@ -663,7 +662,7 @@ module.exports = {
   handleRecordExists,
   handleValidateId,
   handleValidationErrors,
-  handleErrors
+  handleErrors,
 };
 ```
 
@@ -694,7 +693,7 @@ app.use(handleValidationErrors);
 app.use(handleErrors);
 ```
 
-7. Next, in the `controllers/jobs.js` file, require `handleValidId` method. This method will verify whether an id is a valid MongoDB id, **before** we try and use it to find a document so that we can prevent those `CastErrors` from happening (such as when we tried to use the id "123"). That means we need this middleware to run **only** on routes that use ids (i.e., edit, delete and show) and we need it to run before the controller is passed the request. This is actually pretty easy in Express because we can add as many middleware methods we want to our route before the controller! Update the file as follows:
+7. Next, in the `controllers/jobs.js` file, require `handleValidId` method. This method will verify whether an id is a valid MongoDB id **before** we try and use it to find a document so that we can prevent those `CastErrors` from happening (such as when we tried to use the id "123"). That means we need this middleware to run **only** on routes that use ids (i.e., edit, delete and show) and we need it to run before the controller is passed the request. This is actually pretty easy in Express because we can add as many middleware methods we want to our route before the controller! Update the file as follows:
 
 ```js
 // Require handleValidateId by destructuring it from the exports object
@@ -725,10 +724,10 @@ router.delete('/:id', handleValidateId, (req, res, next) => {
 
 ```js
 const express = require('express');
-const Job = require('../db/models/job_model');
+const Job = require('../models/Job');
 const {
   handleValidateId,
-  handleRecordExists
+  handleRecordExists,
 } = require('../middleware/custom_errors');
 const router = express.Router();
 
@@ -738,7 +737,7 @@ router.get('/', (req, res, next) => {
   // Use our Job model to find all of the documents
   // in the jobs collection
   // Then send all of the jobs back as json
-  Job.find().then(jobs => res.json(jobs));
+  Job.find().then((jobs) => res.json(jobs));
 });
 
 // SHOW
@@ -746,7 +745,7 @@ router.get('/', (req, res, next) => {
 router.get('/:id', handleValidateId, (req, res, next) => {
   Job.findById(req.params.id)
     .then(handleRecordExists)
-    .then(job => {
+    .then((job) => {
       res.json(job);
     })
     .catch(next);
@@ -756,7 +755,7 @@ router.get('/:id', handleValidateId, (req, res, next) => {
 // POST api/jobs
 router.post('/', (req, res, next) => {
   Job.create(req.body)
-    .then(job => res.status(201).json(job))
+    .then((job) => res.status(201).json(job))
     .catch(next);
 });
 
@@ -764,10 +763,10 @@ router.post('/', (req, res, next) => {
 // PUT api/jobs/5a7db6c74d55bc51bdf39793
 router.put('/:id', handleValidateId, (req, res, next) => {
   Job.findOneAndUpdate({ _id: req.params.id }, req.body, {
-    new: true
+    new: true,
   })
     .then(handleRecordExists)
-    .then(job => {
+    .then((job) => {
       res.json(job);
     })
     .catch(next);
@@ -777,10 +776,10 @@ router.put('/:id', handleValidateId, (req, res, next) => {
 // DELETE api/jobs/5a7db6c74d55bc51bdf39793
 router.delete('/:id', handleValidateId, (req, res, next) => {
   Job.findOneAndDelete({
-    _id: req.params.id
+    _id: req.params.id,
   })
     .then(handleRecordExists)
-    .then(job => {
+    .then((job) => {
       res.sendStatus(204);
     })
     .catch(next);
@@ -791,34 +790,32 @@ module.exports = router;
 
 Excellent! We're done with error handling for now. Test, then git add and git commit your code. Next up we'll be adding a user model.
 
-[View Commit](../../commit/df76270)
-
 ## Add a User Resource
 
 We've got all of the boilerplate in place, so adding a user resource will go quickly. For authentication purposes, we'll be adding some non-RESTful routes related to our user resource. Initially, we'll just focus on creating a `/signup` route that will be a POST route for creating a new user.
 
 ### Create the User Model
 
-1. Create a new file in the `db/models` directory called `user_model.js`.
+1. Create a new file in the `models` directory called `User.js`.
 1. Create a basic user model. To keep things simple, our model is going to be super streamlined with just `email` and `password` fields.
 
 ```js
-const mongoose = require('../connection');
+const mongoose = require('../db/connection');
 
 const userSchema = new mongoose.Schema(
   {
     email: {
       type: String,
       required: true,
-      unique: true
+      unique: true,
     },
     password: {
       type: String,
-      required: true
-    }
+      required: true,
+    },
   },
   {
-    timestamps: true
+    timestamps: true,
   }
 );
 
@@ -832,7 +829,7 @@ module.exports = mongoose.model('User', userSchema);
 
 ```js
 const express = require('express');
-const User = require('../db/models/user_model');
+const User = require('../models/User');
 
 const router = express.Router();
 
@@ -845,7 +842,6 @@ module.exports = router;
 
 - /signup: a POST route that will create a new user in the database
 - /signin: a POST route that will create a new authorization token for the user
-- /signout: a DELETE route that will invalidate the user's authorization token (but not delete the user from the database so they don't need to sign up after every time they sign in).
 
 ```js
 // SIGN UP
@@ -855,10 +851,6 @@ router.post('/signup', (req, res, next) => {});
 // SIGN IN
 // POST /api/signin
 router.post('/signin', (req, res, next) => {});
-
-// SIGN OUT
-// DELETE /api/signout
-router.post('/signout', (req, res, next) => {});
 ```
 
 3. Add create to the signup controller:
@@ -866,7 +858,7 @@ router.post('/signout', (req, res, next) => {});
 ```js
 router.post('/signup', (req, res, next) => {
   User.create(req.body)
-    .then(user => res.status(201).json(user))
+    .then((user) => res.status(201).json(user))
     .catch(next);
 });
 ```
@@ -890,7 +882,7 @@ Test in Postman by creating a new user.
 
 You may have noticed that when you created a new user, you got back a user document with the user's password. That's a huge security hole in our API right now. We can fix it using Mongoose [Virtuals](https://mongoosejs.com/docs/tutorials/virtuals.html) pretty easily though. Virtuals are used to transform data without persisting the transformation in MongoDB. We'll create a virtual that will automatically remove the password field any time we use a toJSON method (including `JSON.stringify()`, Mongoose's `.toJSON()` method or Express' `.json()` method). Even though the field is being deleted by the virtual, it remains safe and sound in our database.
 
-1. Open the `models/user_model.js` file.
+1. Open the `models/User.js` file.
 1. Update the schema as follows to add a virtual:
 
 ```js
@@ -899,12 +891,12 @@ const userSchema = new mongoose.Schema(
     email: {
       type: String,
       required: true,
-      unique: true
+      unique: true,
     },
     password: {
       type: String,
-      required: true
-    }
+      required: true,
+    },
   },
   {
     timestamps: true,
@@ -914,8 +906,8 @@ const userSchema = new mongoose.Schema(
       transform: (_doc, ret) => {
         delete ret.password;
         return ret;
-      }
-    }
+      },
+    },
   }
 );
 ```
@@ -926,17 +918,11 @@ Create a new user in Postman. :tada: No more password being sent! However, it se
 
 We're breaking a cardinal rule of user security by saving the user's password in plain text. Even in a-just-for-fun, non-commercial app, we're opening ourselves up to financial liability and risking the security of users who often reuse the same password on multiple sites. So lets fix that, shall we?
 
-When it comes to storing password data securely, the only thing we can do is not store it at all.
-
-> _Wait...whaaat?_
->
-> **We should _never store a password_ &mdash; not even an encrypted password.**
-
-Instead we should store a hash of the password. Hashing is a **one-way function**, so the hashed value cannot be reversed to obtain the original input value. If you apply the same hashing algorithm to the same value you'll always get the same hash though. That means we can store the hash of the password and when users sign into the system, we can hash the password they send and compare it with the hash in the database to verify that they provided the correct password.
+When it comes to storing password data securely, the only thing we can do is not store it at all. Instead we should store a hash of the password. Hashing is a **one-way function**. Hashed values are not designed to be reversed to obtain the original input value like encrypted values, which are designed to be decrypted. If you apply the same hashing algorithm to the same value you'll always get the same hash though. That means we can store the hash of the password and when users sign into the system, we can hash the password they send and compare it with the hash in the database to verify that they provided the correct password.
 
 1. We'll use a popular npm package called `bcrypt` to hash our passwords, so in the Terminal run `npm i bcrypt`. :warning: **Do not run this install from VS Code's integrated terminal**.
 1. Require the `bcrypt` package in your `controllers/users.js` file with `const bcrypt = require('bcrypt');`.
-1. To hash the password, we'll use the `bcrypt.hash()` method which takes two arguments. The first argument is the value we want to hash and the second is the number of salt rounds. Salting is a way to make the hash stronger. Each time the value is salted, it is transformed in some way by adding another value to it. The more times you salt, the more the original value is changed and obscured. We're going to use `10` salt rounds. Hashing and salting takes time so bcrypt's `.hash()` method is asynchronous (also has a hashSync method). Since we're using a promise chain for our create already, we have two options: wrap the hash in a promise to start a chain that we can use to invoke the create, or refactor using async and await. Below are both implementations:
+1. To hash the password, we'll use the `bcrypt.hash()` method which takes two arguments. The first argument is the value we want to hash and the second is the number of salt rounds. Salting is a way to make the hash stronger. Each time the value is salted, it is transformed in some way by adding another value to it. The more times you salt, the more the original value is changed and obscured. We're going to use `10` salt rounds. The bcrypt `.hash()` method is asynchronous. Since we're using a promise chain for our create already, we have two options: wrap the hash in a promise to start a chain that we can use to invoke the create, or refactor using async and await. Below are both implementations **(choose one)**:
 
 ```js
   ...
@@ -951,7 +937,7 @@ router.post('/signup', async (req, res, next) => {
     // store the results of any asynchronous calls in variables
     // and use the await keyword before them
     const password = await bcrypt.hash(req.body.password, 10);
-    const user = await User.create({ email, password });
+    const user = await User.create({ email: req.body.email, password });
     res.status(201).json(user);
   } catch (error) {
     // return the next callback and pass it the error from catch
@@ -993,13 +979,11 @@ Create a new user with a different email address in Postman. If you look in Mong
 
 If your passwords are hashed, add and commit your changes. Next, we'll add the user to the job documents.
 
-[View Commit](../../commit/68ba932)
-
 ## Add Users to Jobs
 
 Now we're going to create a one-to-many relationship between our users and jobs. In Mongoose, we can do this with _child referencing_ or _parent referencing_, but the preferred approach for one-to-many relationships is through **parent referencing**. This means that weʼll add the parent document’s id to each of the child documents. This keeps our data flat and helps to prevent inconsistencies.
 
-1. Open the `db/models/job_model.js` file.
+1. Open the `models/Job.js` file.
 1. After the description property in the schema, add an owner field. Set its type to a Mongoose object id, reference the User model, and make it required:
 
 ```js
@@ -1028,7 +1012,7 @@ router.get('/:id', handleValidateId, (req, res, next) => {
   Job.findById(req.params.id)
     .populate('owner')
     .then(handleRecordExists)
-    .then(job => {
+    .then((job) => {
       res.json(job);
     })
     .catch(next);
@@ -1041,7 +1025,7 @@ router.get('/:id', handleValidateId, (req, res, next) => {
 router.get('/', (req, res, next) => {
   Job.find()
     .populate('owner', 'email -_id')
-    .then(jobs => res.json(jobs));
+    .then((jobs) => res.json(jobs));
 });
 ```
 
@@ -1049,19 +1033,17 @@ Test both routes in Postman. You'll see that the populated owner continues to ho
 
 Awesome progress... we're ready to add in authentication (finally :sweat_smile:). Add and commit your changes.
 
-[View Commit](../../commit/cccb6b8)
-
 ## Add Authentication
 
 In this part of the tutorial, we'll be tackling the steps needed to add authentication to our app. We'll be using [Passport](http://www.passportjs.org/) to simplify the authentication process. To use Passport, we need to install it in our app along with one (or more) of the over [500 strategies](http://www.passportjs.org/packages/) it offers for authentication. For this tutorial, we'll be employing a strategy which uses JSON Web Tokens ([JWT](https://jwt.io/introduction/)).
 
-JWT is an open standard and an excellent choice for modern applications based on REST architectures. The fundamental premise of the REST architectural style is that the **server does not store any state** about the client session on the server side, hence the name Representational **State Transfer**. In REST, every HTTP request happens in complete isolation. It is up to the client to send (i.e., transfer) whatever state is needed to carry out the request. JWT provides a lightweight approach to transferring state from the client to the server in a secure fashion. While server-based sessions donʼt necessarily have to violate the constraints of REST, they are costly in terms of server resources and they simply don't scale well.
+JWT is an open standard and an excellent choice for modern applications based on REST architectures. The fundamental premise of the REST architectural style is that the **server does not store any state** about the client session on the server side, hence the name Representational **State Transfer**. In REST, every HTTP request happens in complete isolation. It is up to the client to send (i.e., transfer) whatever state is needed to carry out the request. JWT provides a lightweight approach to transferring state from the client to the server in a secure fashion.
 
 ### Configure Passport
 
 Each Passport strategy has to be configured for your specific app. Basically, Passport gives us a callback and we fill it in with any logic needed to get the user from our database that matches some bit of data that Passport extracts from a request. After configuring the strategy with the code to retrieve the user from the database, we register the strategy, and initialize Passport.
 
-Once initialized, weʼll run the passport strategy that we configured and registered as route middleware. When run as middleware, Passport receives the request, extracts and decrypts the user’s token, adds it to the request object and then passes the request with the user object in it on to the controller in route that called it (or the next route middleware).
+Once initialized, weʼll run the passport strategy as route middleware. When run as middleware, Passport receives the request, extracts and decrypts the user’s token, adds it to the request object and then passes the request with the user object in it on to the controller in route that called it (or the next route middleware).
 
 1. Start by installing the npm packages with: `npm i passport passport-jwt jsonwebtoken`.
 1. Create a new file in the `middleware` directory called `auth.js`.
@@ -1092,11 +1074,11 @@ const opts = {
   // Any secret string to use that is unique to your app
   // We should store this in an environment variable so it
   // isn't ever pushed to GitHub!
-  secretOrKey: secret
+  secretOrKey: secret,
 };
 
 // Require the user model
-const User = require('../db/models/user_model');
+const User = require('../models/User');
 
 // We're configuring the strategy using the constructor from passport
 // so we call new and pass in the options we set in the `opts` variable.
@@ -1104,7 +1086,7 @@ const User = require('../db/models/user_model');
 // this as middleware.  The callback will be passed the data that was
 // extracted and decrypted by passport from the token that we get from
 // the client request!  This data (jwt_payload) will include the user's id!
-const strategy = new Strategy(opts, function(jwt_payload, done) {
+const strategy = new Strategy(opts, function (jwt_payload, done) {
   // In the callback we run our custom code. With the data extracted from
   // the token that we're passed as jwt_payload we'll have the user's id.
   // Using Mongoose's `.findOneById()` method, we find the user in our database
@@ -1113,10 +1095,10 @@ const strategy = new Strategy(opts, function(jwt_payload, done) {
     // that was passed as part of the callback.  The first parameter of
     // done is an error, so we'll pass null for that argument and then
     // pass the user doc from Mongoose
-    .then(user => done(null, user))
+    .then((user) => done(null, user))
     // If there was an error, we pass it to done so it is eventually handled
     // by our error handlers in Express
-    .catch(err => done(err));
+    .catch((err) => done(err));
 });
 
 // Now that we've constructed the strategy, we 'register' it so that
@@ -1156,7 +1138,7 @@ const createUserToken = (req, user) => {
 
 module.exports = {
   requireToken,
-  createUserToken
+  createUserToken,
 };
 ```
 
@@ -1179,11 +1161,11 @@ const { createUserToken } = require('../middleware/auth');
 router.post('/signin', (req, res, next) => {
   User.findOne({ email: req.body.email })
     // Pass the user and the request to createUserToken
-    .then(user => createUserToken(req, user))
+    .then((user) => createUserToken(req, user))
     // createUserToken will either throw an error that
     // will be caught by our error handler or send back
     // a token that we'll in turn send to the client.
-    .then(token => res.json({ token }))
+    .then((token) => res.json({ token }))
     .catch(next);
 });
 ```
@@ -1198,13 +1180,13 @@ Go test signing up in Postman!!! Use a POST request that has a body containing a
 
 We're so close to done now! All that's left is to set up our job route to use the token! Add and commit your changes.
 
-[View Commit](../../commit/28961ba)
-
 ## Add Authorization
 
-Along with authenticating the user, we now have to handle user authorization. What's the difference? When the user logs into the system successfully, we _authenticate_ them based on the credentials they send (such as a proper combination of email and password). Authorization means determining whether the user is actually authorized to perform some action in the system. Just because you're logged in, doesn't mean you have the 'keys to the kingdom'.
+Along with authenticating the user, we now have to handle user authorization. What's the difference? When the user logs into the system successfully, we _authenticate_ them based on the credentials they send (such as a proper combination of email and password). Authorization means determining whether the user is actually authorized to perform some action in the system.
 
 With the token, we can determine which user is making a request. With that information, we can determine if the specific user making the request is _authorized_ to carry out a specific action, such as create documents or delete or update a specific document.
+
+To add this functionality, we have to change up the update and delete methods that we're using because we want to test that the user is allowed to update/delete the record before we carry out that operation. So, we'll use the `findById` method, check the that user is authorized for that document, then we'll separately do the delete or update.
 
 1. Update the handleValidateId function in `middleware/error_handler.js` as follows:
 
@@ -1227,7 +1209,7 @@ const handleValidateOwnership = (req, document) => {
 const {
   handleValidateId,
   handleRecordExists,
-  handleValidateOwnership
+  handleValidateOwnership,
 } = require('../middleware/custom_errors');
 ```
 
@@ -1238,19 +1220,18 @@ const {
 // POST api/jobs
 router.post('/', requireToken, (req, res, next) => {
   Job.create({ ...req.body, owner: req.user._id })
-    .then(job => res.status(201).json(job))
+    .then((job) => res.status(201).json(job))
     .catch(next);
 });
 
 // UPDATE
 // PUT api/jobs/5a7db6c74d55bc51bdf39793
 router.put('/:id', handleValidateId, requireToken, (req, res, next) => {
-  Job.findOneAndUpdate({ _id: req.params.id }, req.body, {
-    new: true
-  })
+  Job.findById(req.params.id)
     .then(handleRecordExists)
-    .then(job => handleValidateOwnership(req, job))
-    .then(job => {
+    .then((job) => handleValidateOwnership(req, job))
+    .then((job) => job.set(req.body).save())
+    .then((job) => {
       res.json(job);
     })
     .catch(next);
@@ -1259,12 +1240,11 @@ router.put('/:id', handleValidateId, requireToken, (req, res, next) => {
 // DESTROY
 // DELETE api/jobs/5a7db6c74d55bc51bdf39793
 router.delete('/:id', handleValidateId, requireToken, (req, res, next) => {
-  Job.findOneAndDelete({
-    _id: req.params.id
-  })
+  Job.findById(req.params.id)
     .then(handleRecordExists)
-    .then(job => handleValidateOwnership(req, job))
-    .then(job => {
+    .then((job) => handleValidateOwnership(req, job))
+    .then((job) => job.remove())
+    .then(() => {
       res.sendStatus(204);
     })
     .catch(next);
@@ -1273,38 +1253,18 @@ router.delete('/:id', handleValidateId, requireToken, (req, res, next) => {
 
 Phew... that was a lot! All that's left now is to add the sign out feature.
 
-### Add the Signout Controller
-
-JWT tokens automatically expire after a certain amount of time. In our case, the tokens are set to expire after 10 hours. The token cannot technically be **invalidated** during this time. However, we can send an empty token when the user clicks sign out, which our front end can interpret to mean that the user should be forced to login again. The act of logging in would create a new token with a new expiration time.
-
-1. Add the controller for the `/signout` route in the `controllers/users.js` as follows:
-
-```js
-// SIGN OUT
-// DELETE /signout
-router.delete('/signout', requireToken, (req, res, next) => {
-  res.json({ token: '' });
-});
-```
-
-Technically, we're done. In the next section, we'll cover how to test the new routes in Postman and how to use them in the front end of our application.
-
-Congrats for sticking with it this far! :champagne:
-
-[View Commit](../../commit/c151689)
-
 ## Update Database Seed Method
 
-Now that we need each of our job documents to have an owner on them, lets update `db/models/seeds.js` to do that for us. We'll create a new function that takes an email as an argument from the command line when the file is run and finds the user in the database. Then, we'll loop over the json file in memory and add a new owner property with the userʼs id.
+Now that we need each of our job documents to have an owner on them, lets update `db/seed.js` to do that for us. We'll create a new function that takes an email as an argument from the command line when the file is run and finds the user in the database. Then, we'll loop over the json file in memory and add a new owner property with the userʼs id.
 
-To run the file from the command line, make sure you're in the root of your project directory and type: `node db/seeds.js em@il` and replace _em@il_ with an email address that matches one of the users in your database.
+To run the file from the command line, make sure you're in the root of your project directory and type: `node db/seed.js em@il` and replace _em@il_ with an email address that matches one of the users in your database.
 
-1. Open `db/models/seeds.js`.
+1. Open `db/seed.js`.
 1. Replace the file contents with the follow:
 
 ```js
-const User = require('./models/user_models');
-const Job = require('./models/job_models');
+const User = require('./models/User');
+const Job = require('./models/Job');
 const seedData = require('./seeds.json');
 
 const getUser = async () => {
@@ -1326,8 +1286,8 @@ const getUser = async () => {
 
 Job.deleteMany()
   .then(getUser)
-  .then(user => {
-    const seedDataWithOwner = seedData.map(job => {
+  .then((user) => {
+    const seedDataWithOwner = seedData.map((job) => {
       job.owner = user._id;
       return job;
     });
