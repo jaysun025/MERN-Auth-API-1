@@ -1203,7 +1203,7 @@ const handleValidateOwnership = (req, document) => {
 ```
 
 2. Open the `controllers/jobs.js`.
-3. Add `handleValidateOwnership` to the destructured require statement for error handlers.
+3. Add `handleValidateOwnership` to the destructured require statement for error handlers and include the `requireToken` from auth.
 
 ```js
 const {
@@ -1211,6 +1211,7 @@ const {
   handleRecordExists,
   handleValidateOwnership,
 } = require('../middleware/custom_errors');
+const { requireToken } = require('../middleware/auth');
 ```
 
 4. Update the POST, PUT and DELETE routes as follows:
@@ -1263,8 +1264,8 @@ To run the file from the command line, make sure you're in the root of your proj
 1. Replace the file contents with the follow:
 
 ```js
-const User = require('./models/User');
-const Job = require('./models/Job');
+const User = require('../models/User');
+const Job = require('../models/Job');
 const seedData = require('./seeds.json');
 
 const getUser = async () => {
