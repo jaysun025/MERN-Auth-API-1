@@ -2,9 +2,7 @@
 
 # Express API & Authentication
 
-Throughout this tutorial, we'll build an Express API as the back end to a job board application where users can post job openings. In order for the job seekers to be able to see and potentially apply to the jobs, this needs to be an ‘open readʼ model with the ability for all users to see (i.e., read) the jobs. However, it wouldn't make sense if a job seeker could edit or delete jobs, so we'll add ownership to the job model and make sure that only the user who created the job can update or delete it. In order to determine which users are authorized to modify which job documents, we need a user model and a system for authenication.
-
-We'll start by creating the Job resource. Then we'll add a User resource and connect the two using Mongoose relationships. Finally, we'll use Passport middleware to add authentication.
+Throughout this tutorial, we'll build an Express API as the back end to a boilplate application that has users and authenticates them using Passport middleware.
 
 ## Basic Express API Setup
 
@@ -102,7 +100,15 @@ mongoose
 
 4. Back in the Terminal, type `control + C` to stop the process that's running and return to the command prompt. Now, try running the connection.js file again with `node db/connection.js`. This time you should only see the connection message.
 
-5. Great! But, we know that this API isn't always going to be run on our Atlas cluster, so we should use an environment variable for the connection string. Move your connection string to be an environment variable by putting it in your `.env` file, then import and configure `dotenv` at the top of `db/connection.js`. The completed file will look like this:
+5. Great! But, we know that this API isn't always going to be run on our Atlas cluster, so we should use an environment variable for the connection string. 
+
+* Move your connection string to be an environment variable by putting it in your `.env` file, then import and configure `dotenv` at the top of `db/connection.js`.
+
+* You'll also need to change the `connect` argument to include the `process.env.DB_CONNECTION_STRING`. 
+
+6. Finally, export your connected mongoose instance for use in other files by adding `module.exports = mongoose`
+
+The completed file will look like this:
 
 ```js
 // Import dotenv and configure it for use in this file
@@ -119,12 +125,12 @@ mongoose.connect(process.env.DB_CONNECTION_STRING, {
     useFindAndModify: false
   })
   // If the connection is successful, give a message in the Terminal with the db name
-  .then((instance) =>
+  .then(instance =>
     console.log(`Connected to db: ${instance.connections[0].name}`)
   )
   // If the connection fails, give a message and pass along the error so we see it in
   // the Terminal.
-  .catch((error) => console.log('Connection failed!', error));
+  .catch(error => console.log('Connection failed!', error));
 
 // Export the connection so we can use it elsewhere in our app.
 module.exports = mongoose;
