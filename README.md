@@ -12,9 +12,10 @@ First let's quickly set up a basic project environment.
 
 ### Scaffold the Project
 
-1. From the command line, create a new directory and switch into it with `mkdir job-board-api && cd job-board-api`.
+1. From the command line, create a new directory and switch into it with `mkdir MERN-AUTH-API && cd MERN-AUTH-API`.
 1. Run `git init` to initialize the repository for Git.
 1. Create a `.gitignore` and add the node_modules directory to it with `echo node_modules > .gitignore`
+1. Creat a `.env` file with `touch .env`
 1. Create an `index.js` file with `touch index.js`.
 1. Create some directories inside your project to organize your code with `mkdir models db controllers middleware`.
 1. Run `npm init -y` to initialize the repository for npm.
@@ -34,7 +35,7 @@ First let's quickly set up a basic project environment.
 <!-- prettier-ignore-start -->
 <!-- INIT_DIRECTORY_DIAGRAM - START -->
 ```md
-job-board-api
+MERN-AUTH-API
     ├── index.js
     ├── controllers
     ├── models
@@ -53,16 +54,19 @@ git commit -m "Initial commit"
 13. Create a new repository on GitHub and copy the code in the section that reads: **`…or push an existing repository from the command line`** by clicking the copy icon on the right side of the code block.
 1. Paste the code in the Terminal window.
 
+### TODO: Set up cluster on Atlas
+
 ### Connect to MongoDB
 
 1. Create a file in the `db` directory called `connection.js` and add the following code:
 
 ```js
 const mongoose = require('mongoose');
+const DB_CONNECTION_STRING = `<put your connection string here>`
 
 mongoose
-  .connect('mongodb://localhost/job-board')
-  .then((instance) =>
+  .connect()
+  .then((DB_CONNECTION_STRING) =>
     console.log(`Connected to db: ${instance.connections[0].name}`)
   )
   .catch((error) => console.log('Connection failed!', error));
@@ -70,7 +74,9 @@ mongoose
 module.exports = mongoose;
 ```
 
-2. Back in the Terminal make sure you're in the `job-board-api` directory and run the file to test your connection using NodeJS with `node db/connection.js`. If you get a `Connection failed` error or do not see `Connected to db: job-board`, [check and make sure that your MongoDB server is running](https://git.generalassemb.ly/seir-129/mongo-install-homework). Otherwise, you should see output similar to the following:
+Make sure to add a db username and password and name to the appropriate parts of the connection string. For example: `mongodb+srv://sei:seisei@sei-mern-auth.a0ell.mongodb.net/SEI-MERN-Auth?retryWrites=true&w=majority`
+
+2.Back in the Terminal make sure you're in the `MERN-AUTH-API` directory and run the file to test your connection using NodeJS with `node db/connection.js`. If you get a `Connection failed` error or do not see `Connected to db: job-board`, [check and make sure that your MongoDB server is running](https://git.generalassemb.ly/seir-129/mongo-install-homework). Otherwise, you should see output similar to the following:
 
 ```bash
 (node:48059) DeprecationWarning: current URL string parser is deprecated, and will be removed
@@ -81,11 +87,11 @@ pass option { useUnifiedTopology: true } to the MongoClient constructor.
 Connected to db: job-board
 ```
 
-3. Let's get rid of the warnings by modifying the `mongoose.connect()` method like so:
+3. Let's get rid of the warnings by modifying the `mongoose.connect()` method like so [mongoose deprecation docs](https://mongoosejs.com/docs/deprecations.html):
 
 ```js
 mongoose
-  .connect('mongodb://localhost/job-board', {
+  .connect(DB_CONNECTION_STRING, {
     useNewUrlParser: true,
     useCreateIndex: true,
     useUnifiedTopology: true,
@@ -96,28 +102,21 @@ mongoose
 
 4. Back in the Terminal, type `control + C` to stop the process that's running and return to the command prompt. Now, try running the connection.js file again with `node db/connection.js`. This time you should only see the connection message.
 
-5. Great! But, we know that this API isn't always going to be run on our local machine so we should use a variable for the connection string. We'll use a ternary to set the string to the localhost or the URI that's stored in the environment variable called `MONGODB_URI` that we'll set in Heroku to point to our production database on Atlas. The completed file will look like this:
+5. Great! But, we know that this API isn't always going to be run on our Atlas cluster, so we should use an environment variable for the connection string. Move your connection string to be an environment variable by putting it in your `.env` file, then import and configure `dotenv` at the top of `db/connection.js`. The completed file will look like this:
 
 ```js
+// Import dotenv and configure it for use in this file
+require('dotenv').config()
 // Import Mongoose to interface with MongoDB
 const mongoose = require('mongoose');
 
-// Use a ternary that looks for the presence of a `NODE_ENV` environmental variable
-// If `NODE_ENV` is set to `production`, use the URI for our database stored in the
-// `MONGODB_URI` environmental variable.  If not, just use the local db address.
-const mongoURI =
-  process.env.NODE_ENV === 'production'
-    ? process.env.MONGODB_URI
-    : 'mongodb://localhost/job-board';
-
 // Use Mongoose's connect method to connect to MongoDB by passing it the db URI.
 // Pass a second argument which is an object with the options for the connection.
-mongoose
-  .connect(mongoURI, {
+mongoose.connect(process.env.DB_CONNECTION_STRING, {
     useNewUrlParser: true,
     useCreateIndex: true,
     useUnifiedTopology: true,
-    useFindAndModify: false,
+    useFindAndModify: false
   })
   // If the connection is successful, give a message in the Terminal with the db name
   .then((instance) =>
