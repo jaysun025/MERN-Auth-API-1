@@ -1,6 +1,5 @@
 const User = require('../models/User')
 
-
 User.create({
     email: 'test@test.com',
     password: 'testpassword'

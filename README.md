@@ -222,7 +222,7 @@ User.create({
     else console.log('success!', createdUser)
 })
 ```
-Run `node db/userTest.js` to check that the test user was added successfully!
+Run `node db/userTest.js` and check that the test user was added successfully (you'll see the console log if it did, but also look in your collection on Atlas)!
 
 ### Create Routes for the User Resource
 
@@ -231,8 +231,6 @@ Run `node db/userTest.js` to check that the test user was added successfully!
 
 ```js
 const express = require('express');
-const User = require('../models/User');
-
 const router = express.Router();
 
 // routes/controllers here
@@ -240,20 +238,37 @@ const router = express.Router();
 module.exports = router;
 ```
 
+You'll also need to write the controller middleware for users in `index.js`:
+
+
+
 1. Stub out the routes for our user resource. They will be:
 
 - /signup: a POST route that will create a new user in the database
-- /signin: a POST route that will create a new authorization token for the user
+- /login: a POST route that will create a new authorization token for the user
 
 ```js
 // SIGN UP
 // POST /api/signup
-router.post('/signup', (req, res, next) => {});
+router.post('/signup', (req, res) => {
+    console.log('hit signup post route')
+})
 
-// SIGN IN
+// Log IN
 // POST /api/signin
-router.post('/signin', (req, res, next) => {});
+router.post('/login', (req, res) => {
+    console.log('hit login post route')
+})
 ```
+
+Import the user controllers to `index.js` underneath any other middleware you have:
+
+```js
+// Import the user resource actions
+app.use('/api/users', require('./controllers/users'))
+```
+
+Test that these routes are being hit via Postman!
 
 3. Add create to the signup controller:
 
@@ -265,12 +280,6 @@ router.post('/signup', (req, res, next) => {
 });
 ```
 
-4. Require the user controllers in `index.js`. To keep things organized, add the require statement right above the existing `jobController` variable.
-
-```js
-// Require the user resource routes and controllers
-const userController = require('./controllers/users');
-```
 
 5. Use the controller. Again, to make sure things are organized and to ensure the correct order of execution, place this right above or below the existing `.app.use()` method for the jobController.
 
