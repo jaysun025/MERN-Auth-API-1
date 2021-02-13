@@ -18,16 +18,7 @@ First let's quickly set up a basic project environment.
 1. Create some directories inside your project to organize your code with `mkdir models db controllers middleware`.
 1. Run `npm init -y` to initialize the repository for npm.
 1. Install dependencies with `npm i express cors mongoose dotenv`.
-1. Install `nodemon` as a devDependency with `npm i -D nodemon`.
 1. Open the directory in VS Code with `code .`.
-1. Navigate to the `package.json` file and inside the `scripts` property object add the following:
-
-```json
-    "start": "node index.js",
-    "dev": "nodemon index.js"
-```
-
-10. While in the package.json, you can _optionally_ fill in the keywords, description and author fields.
 1.  Create your directory folders:
 
 <!-- prettier-ignore-start -->
@@ -140,22 +131,22 @@ module.exports = mongoose;
 
 ### Setup a Server
 
-1. In the `index.js` file lets create a basic Express server and get it running. We need to require Express and store it in a variable called `express`. Then we'll invoke express to instantiate the Express application object and store that in a variable called `app`. Finally, we'll listen on port 4000 for requests and add a callback so we know its running. The basic server looks like this:
+1. In the `index.js` file lets create a basic Express server and get it running. We need to require Express and store it in a variable called `express`. Then we'll invoke express to instantiate the Express application object and store that in a variable called `app`. Finally, we'll listen on port 8000 for requests and add a callback so we know its running. The basic server looks like this:
 
 ```js
 const express = require('express');
 const app = express();
 
-app.listen(4000, () => {
-  console.log('listening on port 4000');
+app.listen(8000, () => {
+  console.log('listening on port 8000');
 });
 ```
 
-2. Use the `dev` script we wrote earlier in the `package.json` file to run the server. In the Terminal, type `npm run dev`.
-1. This server doesn't do anything at all, so lets build it out a bit more. We know we'll be adding our routes in here so let's require `mongoose` and while we're at it require the `cors` middleware.
-1. Now, anywhere after you instatiated Express (after the `app` variable), add the cors middleware. Remember, to use a middleware in Express we need to pass it to the `app.use()` method.
-1. We're also going to have to use two of the builtin middleware packages since we're going to be making requests via AJAX to the server, so add `app.use(express.json())` and `app.use(express.urlencoded({ extended: true }))`.
-1. Lastly, again, we know that eventually we'll be running this on a remote server, so lets create a port variable. We can assign the variable the value of the PORT environment variable that will be set in Heroku OR if that environment variable doesn't exist, it should use 4000.
+2. Use `nodemon` to run the server.
+
+3. This server doesn't do anything at all, so lets build it out a bit more. We know we'll be adding our routes in here so let's require `mongoose` and while we're at it import the [cors package](https://www.npmjs.com/package/cors) and set up the middleware. Remember, to use a middleware in Express we need to pass it to the `app.use()` method.
+1. We're also going to have to use two of the built-in middleware packages since we're going to be making requests via AJAX to the server, so add `app.use(express.json())` and `app.use(express.urlencoded({ extended: true }))`.
+1. Lastly, again, we know that eventually we'll be running this on a remote server, so lets create a PORT environment variable. We can assign the variable the value of the PORT environment variable that will be set in Heroku OR if that environment variable doesn't exist, it should use 8000.
 
 The completed file should look like this when done:
 
@@ -181,141 +172,13 @@ app.use(express.json());
 
 // The urlencoded middleware parses requests which use
 // a specific content type (such as when using Axios)
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true }))
 
-// Define a port for API to run on, if the environment
-// variable called `PORT` is not found use port 4000
-app.set('port', process.env.PORT || 4000);
 // Run server on designated port
-app.listen(app.get('port'), () => {
-  console.log('listening on port ' + app.get('port'));
-});
+app.listen(process.env.PORT || 8000, () => {
+  console.log('SEI MERN AUTH API running')
+})
 ```
-
-> :rotating_light: NOTE: If you've previously used the body-parser middleware, you no longer need to do that! Express bundled this middleware into the base package in v4.16.0 (Oct 2017). Using [`express.json`](https://expressjs.com/en/4x/api.html#express.json) is the equivalent of bodyParser.json() and [express.urlencoded()](https://expressjs.com/en/4x/api.html#express.urlencoded) is the same as the body-parser package's method with the same name.
-
-Provided that your server is still listening on port 4000, you're ready to move on to creating some routes. We'll get back to this file in a few minutes.
-
-### Create Routes for the Job Resource
-
-So now that we have our server running, we'll need to create some routes for our job resource. We'll be following the REST architectural style as described in the table below:
-
-| URI           | HTTP VERB |  CRUD  | Action  | 200 Status Code | 400 Status Code(s) |
-| ------------- | :-------: | :----: | :-----: | :-------------: | :----------------: |
-| /resource     |   POST    | Create |   new   |   201 Created   |        422         |
-| /resource     |    GET    |  Read  |  index  |     200 OK      |                    |
-| /resource/:id |    GET    |  Read  |  show   |     200 OK      |        404         |
-| /resource/:id |    PUT    | Update |  edit   |     200 OK      |     404 / 422      |
-| /resource/:id |  DELETE   | Delete | destroy | 204 No content  |        404         |
-
-1. Create a new file called `jobs.js` in the `controllers` directory.
-1. Set up your basic file by requiring Express, which we'll need to create a router, and the Job model from the `models` directory. Create a router and export it. The basic file should look like this:
-
-```js
-const express = require('express');
-const Job = require('../models/Job');
-
-const router = express.Router();
-
-module.exports = router;
-```
-
-3. Stub out all of the routes shown above after the router is created and before it is exported:
-
-```js
-// INDEX
-// GET api/jobs
-router.get('/', (req, res) => {});
-
-// SHOW
-// GET api/jobs/5a7db6c74d55bc51bdf39793
-router.get('/:id', (req, res) => {});
-
-// CREATE
-// POST api/jobs
-router.post('/', (req, res) => {});
-
-// UPDATE
-// PUT api/jobs/5a7db6c74d55bc51bdf39793
-router.put('/:id', (req, res) => {});
-
-// DESTROY
-// DELETE api/jobs/5a7db6c74d55bc51bdf39793
-router.delete('/:id', (req, res) => {});
-```
-
-4. We can fill in the index route easily. The index will send back all of the jobs, so we can use Mongoose's `.find()` method here:
-
-```js
-// INDEX
-// GET api/jobs
-router.get('/', (req, res) => {
-  // Use our Job model to find all of the documents
-  // in the jobs collection
-  // When found, they are passed down the promise chain
-  // to the `.then()` where we send the response as JSON
-  // with `res.json` and pass it any jobs found
-  Job.find().then((jobs) => res.json(jobs));
-});
-```
-
-5. For the show route, we don't want to send back an array. We just want one document, so we can use Mongoose's `.findOne()` method and pass it an object to filter the results by the id, or Mongoose's `.findById()` method which is passed the id as a string.
-
-```js
-router.get('/:id', (req, res) => {
-  Job.findById(req.params.id).then((job) => res.json(job));
-});
-```
-
-6. For post, we'll use the `.create()` method and pass it the request body:
-
-```js
-router.post('/', (req, res) => {
-  Job.create(req.body).then((job) => res.json(job));
-});
-```
-
-7. For update, we'll use Mongoose's `.findOneAndUpdate()`. This method takes three arguments. The first argument is the query filter used to locate the document by its id. The second argument is the data in the request's body object, which should be our newly updated document. The third argument is an object that contains any options for this method. If we set the `new` property to `true` in the options object, Mongoose will return the newly updated document, which is then passed down the promise chain where we can send it back in the response.
-
-```js
-router.put('/:id', (req, res) => {
-  Job.findOneAndUpdate({ _id: req.params.id }, req.body, {
-    new: true,
-  }).then((job) => res.json(job));
-});
-```
-
-8. For delete, we'll use the `.findOneAndDelete()` method and pass it an object with the id to use as the query filter.
-
-```js
-router.delete('/:id', (req, res) => {
-  Job.findOneAndDelete({
-    _id: req.params.id,
-  }).then((job) => res.json(job));
-});
-```
-
-In the next steps, we'll add this to our server's `index.js` file and test it out using [Postman](https://www.postman.com/).
-
-## Configure Job Routes in Server
-
-1. To configure the job routes using the controllers we just built, require the file in the `index.js` after the npm packages at the top of the file, but before instantiating the Express app.
-
-```js
-// Require the job resource routes and controllers
-const jobController = require('./controllers/jobs');
-```
-
-2. Now we'll use this `jobController` right before the port variable that we declared near the bottom of the file. Remember, the order matters here, so make sure that the `jobController` is **AFTER** the `express.json()`, `express.urlencoded()` and `cors()` middleware. Middleware runs in the order that it is used, so if we don't _use_ those files first, they won't run on our requests before they are handled by the `jobController`.
-
-```js
-// Configure the route middleware
-app.use('/api/jobs', jobController);
-```
-
-3. Make sure your server is running and test all of the routes in Postman.
-
-If you were able to CRUD in Postman, congrats to you! :clap: ... but we've still got some work to do so no :champagne: :clinking_glasses: yet. Go ahead and add and commit up to this milestone.
 
 ### HTTP Status Codes
 
@@ -359,7 +222,7 @@ Next, let's deal with the error codes. The most common will be the 404 case. A `
   });
 ```
 
-This will _sort of_ work. As long as the id we provide looks like a Mongo id, we'll get the intended result. If we try and use something that doesn't resemble a Mongo id, we'll get a `CastError` in the Terminal and the entire system will hang. Try making a GET request to `http://localhost:4000/api/jobs/123` from Postman or the browser and you'll see this error. This is where we need some middleware to help us out!
+This will _sort of_ work. As long as the id we provide looks like a Mongo id, we'll get the intended result. If we try and use something that doesn't resemble a Mongo id, we'll get a `CastError` in the Terminal and the entire system will hang. Try making a GET request to `http://localhost:8000/api/jobs/123` from Postman or the browser and you'll see this error. This is where we need some middleware to help us out!
 
 #### Middleware in a Nutshell
 
@@ -434,7 +297,7 @@ router.delete('/:id', (req, res, next) => {
 });
 ```
 
-Try making a GET request to `http://localhost:4000/api/jobs/123` from Postman or the browser again and you'll see that instead of hanging and eventually timing out, we'll get an immediate response. In the Terminal, you'll also see that we no longer get the `UnhandledPromiseRejectionWarning`. This is a better result, but it's still not great. Notice that the error is a generic `500 Internal Server Error` and it's automatically sending along the entire error to the client. Although Express won't send a stack trace to the client in production environments, this error reveals some details about our back end implementation and that's a security risk. Fortunately, this can be fixed pretty easily in Express.
+Try making a GET request to `http://localhost:8000/api/jobs/123` from Postman or the browser again and you'll see that instead of hanging and eventually timing out, we'll get an immediate response. In the Terminal, you'll also see that we no longer get the `UnhandledPromiseRejectionWarning`. This is a better result, but it's still not great. Notice that the error is a generic `500 Internal Server Error` and it's automatically sending along the entire error to the client. Although Express won't send a stack trace to the client in production environments, this error reveals some details about our back end implementation and that's a security risk. Fortunately, this can be fixed pretty easily in Express.
 
 For now, lets add and commit our changes before we move on to handling potential errors.
 
@@ -464,7 +327,7 @@ app.use((err, req, res, next) => {
 });
 ```
 
-Try making a GET request to `http://localhost:4000/api/jobs/123` from Postman or the browser again and you'll see that we are no longer sending along the details of the error to the client! :tada:.
+Try making a GET request to `http://localhost:8000/api/jobs/123` from Postman or the browser again and you'll see that we are no longer sending along the details of the error to the client! :tada:.
 
 Any time an error is thrown in a promise chain, it will be handled by the `.catch()` method which invokes the `next` callback and passes it the error as an argument. When `next` is called with any value, [Express automatically treats the argument it is passed as an error](https://expressjs.com/en/guide/error-handling.html) and sends it to our middleware above. If the error is thrown _outside_ a promise chain, it also automatically gets sent to the middleware above simply because it's an error.
 
@@ -1235,7 +1098,7 @@ Postman actually contains a ton of helpful features for running API tests. One f
 1. Click on the gear icon (:gear:) on the top right side of the window just below the taskbar.
 1. When the Manage Environments modal appears, click the orange Add button at the bottom of the modal.
 1. Give your environment a descriptive name such as **Job Board API**.
-1. For the first variable, name it `url` and set the **initial value** and **current value** column to: `http://localhost:4000/api`.
+1. For the first variable, name it `url` and set the **initial value** and **current value** column to: `http://localhost:8000/api`.
 1. Add a second variable named `id` and set its initial value to an empty string (`''`).
 1. Add a third variable named `token` and also set its initial value to an empty string (`''`).
 1. Click the orange Add button on this screen and then close the modal by clicking the x in the upper right corner.
