@@ -19,9 +19,8 @@ First let's quickly set up a basic project environment.
 1. Run `npm init -y` to initialize the repository for npm.
 1. Install dependencies with `npm i express cors mongoose dotenv`.
 1. Open the directory in VS Code with `code .`.
-1.  Create your directory folders:
 
-<!-- prettier-ignore-start -->
+1.  Create your directory folders:
 <!-- INIT_DIRECTORY_DIAGRAM - START -->
 ```md
 MERN-AUTH-API
@@ -185,42 +184,6 @@ app.listen(process.env.PORT || 8000, () => {
 Our Express API is coming along, but before we add our User model, we need to fix some things. So far, we're kind of breaking a lot of rules when it comes to the HTTP request-response cycle. For one, we're not responding to **all** requests &mdash; only the ones that execute flawlessly. We're not handling any of the error cases. ExpressJS will help us out with some errors by sending a generic 500 server error, but in many cases, we're on our own and the system is simply left to hang :frowning:.
 
 Another issue is that we're not setting the status codes on our responses, so every successful response is the default `200 OK`. Setting acurate status codes is not simply prescribed by REST architecture best practices. [HTTP response status codes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status) are part of the rules defined by HTTP that govern the Web! Plus, it turns out that it's really easy to change the status codes within Express APIs, so letʼs do that:
-
-1. Open the `controllers/jobs.js` file.
-1. In the post route, all we need to do is add `.status(201)` before we call the `.json()` method on the response object.
-1. For the delete route, we'll change things a bit. Although you _can_ return `200 OK` in response to a delete operation, it's more customary to return `204 No Content`, so we'll do that by changing the response to: `.then(() => res.sendStatus(204))`. Notice here that we can't use the `.status()` method that we used for the post route. This is because it doesn't actually send the response. In the post route, the `.json()` method is responsible for sending the response. Since we aren't sending any ‘contentʼ this time, there's no `.json()` method to do the job. The `.sendStatus()` method is different from just `.status()` in that it both sets the status and sends the response.
-
-Next, let's deal with the error codes. The most common will be the 404 case. A `404 Not Found` can occur anytime that we expect an id to be used as part of the URI endpoint because it's possible that the document associated with that id doesn't exist.
-
-1. For both the put and show routes, update the `.then()` method as follows:
-
-```js
-  .then(job => {
-    // If we didn't get a job back from the query
-    if (!job) {
-      // send a 404
-      res.sendStatus(404);
-    } else {
-      // otherwise, send back the job
-      res.json(job);
-    }
-  });
-```
-
-2. For the delete route, update the `.then()` method to read:
-
-```js
-  .then(job => {
-    // If we didn't get a job back from the query
-    if (!job) {
-      // send a 404
-      res.sendStatus(404);
-    } else {
-      // otherwise, send back 204 No Content
-      res.sendStatus(204);
-    }
-  });
-```
 
 This will _sort of_ work. As long as the id we provide looks like a Mongo id, we'll get the intended result. If we try and use something that doesn't resemble a Mongo id, we'll get a `CastError` in the Terminal and the entire system will hang. Try making a GET request to `http://localhost:8000/api/jobs/123` from Postman or the browser and you'll see this error. This is where we need some middleware to help us out!
 
@@ -1098,7 +1061,11 @@ Postman actually contains a ton of helpful features for running API tests. One f
 1. Click on the gear icon (:gear:) on the top right side of the window just below the taskbar.
 1. When the Manage Environments modal appears, click the orange Add button at the bottom of the modal.
 1. Give your environment a descriptive name such as **Job Board API**.
+<<<<<<< HEAD
 1. For the first variable, name it `url` and set the **initial value** and **current value** column to: `http://localhost:8000/api`.
+=======
+1. For the first variable, name it `url` and set the **initial value** and **current value** column to: `http://localhost:4000/api`.
+>>>>>>> fc971b72c8012822e792821425072945ceb723a1
 1. Add a second variable named `id` and set its initial value to an empty string (`''`).
 1. Add a third variable named `token` and also set its initial value to an empty string (`''`).
 1. Click the orange Add button on this screen and then close the modal by clicking the x in the upper right corner.
@@ -1168,7 +1135,10 @@ There are also third party state management tools that could be used to store th
 ## Test Authenticated Routes
 
 To write tests for authenticated routes, you'll need to use the [before or beforeEach hooks](https://mochajs.org/#hooks) in Mocha to generate a user token. You may find that using the async/await syntax is more straightforward here than using promise chains, but both will work. You can also use superagent as described in this [article](https://codeburst.io/authenticated-testing-with-mocha-and-chai-7277c47020b7).
+<<<<<<< HEAD
 
 
 ---
 Adapted from https://git.generalassemb.ly/jmeade11/mern-auth-tutorial
+=======
+>>>>>>> fc971b72c8012822e792821425072945ceb723a1
