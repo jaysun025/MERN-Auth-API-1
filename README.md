@@ -712,10 +712,7 @@ There are also third party state management tools that could be used to store th
 ## Test Authenticated Routes
 
 To write tests for authenticated routes, you'll need to use the [before or beforeEach hooks](https://mochajs.org/#hooks) in Mocha to generate a user token. You may find that using the async/await syntax is more straightforward here than using promise chains, but both will work. You can also use superagent as described in this [article](https://codeburst.io/authenticated-testing-with-mocha-and-chai-7277c47020b7).
-<<<<<<< HEAD
-
 
 ---
+
 Adapted from https://git.generalassemb.ly/jmeade11/mern-auth-tutorial
-=======
->>>>>>> fc971b72c8012822e792821425072945ceb723a1
