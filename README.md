@@ -270,24 +270,44 @@ app.use('/api', require('./controllers/users'))
 
 Test that these routes are being hit via Postman!
 
-3. Add create to the signup controller:
+3. Import the `User` model into your users controller
+`const User = require('../models/User')`
+
+4. Add create to the signup controller:
 
 ```js
 router.post('/signup', (req, res, next) => {
   User.create(req.body)
-    .then((user) => res.status(201).json(user))
-    .catch(next);
-});
+    .then((user) => res.send(user))
+    .catch(err=>{
+      console.log('Oops, there was an error creating the user!')
+    })
+})
 ```
 
+Use Postman to sign up a new user!
 
-5. Use the controller. Again, to make sure things are organized and to ensure the correct order of execution, place this right above or below the existing `.app.use()` method for the jobController.
+5. We're building an API that will send data in JSON format, so let's be legit and use the [JSON response method](http://expressjs.com/en/api.html#res.json) provided by express. 
 
 ```js
-app.use('/api', userController);
+router.post('/signup', (req, res, next) => {
+  User.create(req.body)
+    .then((user) => res.json(user))
+    .catch(err=>{
+      console.log('Oops, there was an error creating the user!')
+    })
+})
 ```
 
-Test in Postman by creating a new user.
+In order for this to work, we also have to include the [express JSON middleware](http://expressjs.com/en/api.html#express.json) in `index.js`:
+
+```js
+app.use(express.json())
+```
+
+Check out [this medium article](https://medium.com/gist-for-js/use-of-res-json-vs-res-send-vs-res-end-in-express-b50688c0cddf) or the express docs to learn more about the differences between `.json` and `.send`.
+
+Try signing up another user to make sure all is still functioning. You shouldn't notice any difference in behavior of your app.
 
 ### Prevent Passwords from Being Sent to Clients
 
