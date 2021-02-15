@@ -270,7 +270,7 @@ Test that these routes are being hit via Postman!
 ```js
 router.post('/signup', (req, res, next) => {
   User.create(req.body)
-    .then((user) => res.send(user))
+    .then((createdUser) => res.send(createdUser))
     .catch(err=>{
       console.log('Oops, there was an error creating the user!')
     })
@@ -284,10 +284,8 @@ Use Postman to sign up a new user!
 ```js
 router.post('/signup', (req, res, next) => {
   User.create(req.body)
-    .then((user) => res.json(user))
-    .catch(err=>{
-      console.log('Oops, there was an error creating the user!')
-    })
+    .then(createdUser => res.json(createdUser)) 
+    .catch(err => {console.log(err)})
 })
 ```
 
@@ -332,55 +330,25 @@ We're breaking a cardinal rule of user security by saving the user's password in
 
 When it comes to storing password data securely, the only thing we can do is not store it at all. Instead we should store a hash of the password. Hashing is a **one-way function**. Hashed values are not designed to be reversed to obtain the original input value like encrypted values, which are designed to be decrypted. If you apply the same hashing algorithm to the same value you'll always get the same hash though. That means we can store the hash of the password and when users sign into the system, we can hash the password they send and compare it with the hash in the database to verify that they provided the correct password.
 
-1. We'll use a popular npm package called `bcrypt` to hash our passwords, so in the Terminal run `npm i bcrypt`. :warning: **Do not run this install from VS Code's integrated terminal**.
+1. We'll use a popular npm package called `bcrypt` to hash our passwords, so in the Terminal run `npm i bcrypt`.
 1. Require the `bcrypt` package in your `controllers/users.js` file with `const bcrypt = require('bcrypt');`.
-1. To hash the password, we'll use the `bcrypt.hash()` method which takes two arguments. The first argument is the value we want to hash and the second is the number of salt rounds. Salting is a way to make the hash stronger. Each time the value is salted, it is transformed in some way by adding another value to it. The more times you salt, the more the original value is changed and obscured. We're going to use `10` salt rounds. The bcrypt `.hash()` method is asynchronous. Since we're using a promise chain for our create already, we have two options: wrap the hash in a promise to start a chain that we can use to invoke the create, or refactor using async and await. Below are both implementations **(choose one)**:
+1. To hash the password, we'll use the `bcrypt.hash()` method which takes two arguments. The first argument is the value we want to hash and the second is the number of salt rounds. Salting is a way to make the hash stronger. Each time the value is salted, it is transformed in some way by adding another value to it. The more times you salt, the more the original value is changed and obscured. We're going to use `10` salt rounds. The bcrypt `.hash()` method is asynchronous.
 
 ```js
   ...
 const bcrypt = require('bcrypt');
   ...
 
-// Using async/await
-// Add the async keyword
-router.post('/signup', async (req, res, next) => {
-  // wrap it in a try/catch to handle errors
-  try {
-    // store the results of any asynchronous calls in variables
-    // and use the await keyword before them
-    const password = await bcrypt.hash(req.body.password, 10);
-    const user = await User.create({ email: req.body.email, password });
-    res.status(201).json(user);
-  } catch (error) {
-    // return the next callback and pass it the error from catch
-    return next(error);
-  }
-});
-
-/*** ALTERNATIVE ***/
-
 //Using promise chain
-router.post('/signup', (req, res, next) => {
-  bcrypt
-    .hash(req.body.password, 10)
-    // return a new object with the email and hashed password
-    .then(hash =>
-      // when returning an object with fat arrow syntax, we
-      // need to wrap the object in parentheses so JS doesn't
-      // read the object curly braces as the function block
-      ({
-        email: req.body.email,
-        password: hash
-      })
-    )
-    // create user with provided email and hashed password
-    .then(user => User.create(user))
-    // send the new user object back with status 201, but `hashedPassword`
-    // won't be send because of the `transform` in the User model
-    .then(user => res.status(201).json(user))
-    // pass any errors along to the error handler
-    .catch(next);
-});
+router.post('/signup', (req, res) => {
+  bcrypt.hash(req.body.password, 10)
+  .then(hash => ({email: req.body.email, password : hash }))
+  .then(hashedUser => User.create(hashedUser))
+  .then(createdUser => res.json(createdUser))
+  .catch(err => {
+    console.log(err)
+  })
+})
 ```
 
 Create a new user with a different email address in Postman. If you look in Mongo, you should see that the password is now hashed and looks something like this:
@@ -388,62 +356,7 @@ Create a new user with a different email address in Postman. If you look in Mong
 ```json
 "password" : "$2b$10$5g62t1K7SUovJ2.XonHfy.kiDWQr/UEpR1ha8DSwAWWpBob5WXAKy"
 ```
-
-If your passwords are hashed, add and commit your changes. Next, we'll add the user to the job documents.
-
-## Add Users to Jobs
-
-Now we're going to create a one-to-many relationship between our users and jobs. In Mongoose, we can do this with _child referencing_ or _parent referencing_, but the preferred approach for one-to-many relationships is through **parent referencing**. This means that weʼll add the parent document’s id to each of the child documents. This keeps our data flat and helps to prevent inconsistencies.
-
-1. Open the `models/Job.js` file.
-1. After the description property in the schema, add an owner field. Set its type to a Mongoose object id, reference the User model, and make it required:
-
-```js
-{
-  ...
-  owner: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true
-    }
-}
-```
-
-3. Copy the id from a user document you created when you when you tested your signup controller.
-1. Open up Postman and create a new job with a POST method and pass the id of the user you copied from the user document as the value for the owner.
-1. You should receive a 201 Created status and see the newly created document.
-
-### Add Population
-
-So this is cool, but maybe we want to actually get some information about the user with our response. Mongoose makes this easy with [populate](https://mongoosejs.com/docs/populate.html).
-
-1. Open the `/controllers/jobs.js` file and add `.populate('owner')` immediately after the find method in the show route:
-
-```js
-router.get('/:id', handleValidateId, (req, res, next) => {
-  Job.findById(req.params.id)
-    .populate('owner')
-    .then(handleRecordExists)
-    .then((job) => {
-      res.json(job);
-    })
-    .catch(next);
-});
-```
-
-2. You can also specify just fields that should be populated. Update the index route as follows to populate only the email:
-
-```js
-router.get('/', (req, res, next) => {
-  Job.find()
-    .populate('owner', 'email -_id')
-    .then((jobs) => res.json(jobs));
-});
-```
-
-Test both routes in Postman. You'll see that the populated owner continues to honor the virtuals that we set up in the User model.
-
-Awesome progress... we're ready to add in authentication (finally :sweat_smile:). Add and commit your changes.
+If your passwords are hashed, add and commit your changes.
 
 ## Add Authentication
 
