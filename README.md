@@ -164,11 +164,6 @@ const app = express();
 // comes before our routes are used.
 app.use(cors());
 
-// Add `express.json` middleware which will
-// parse JSON requests into JS objects before
-// they reach the route files.
-app.use(express.json());
-
 // The urlencoded middleware parses requests which use
 // a specific content type (such as when using Axios)
 app.use(express.urlencoded({ extended: true }))
@@ -182,13 +177,14 @@ app.listen(process.env.PORT || 8000, () => {
 ### Create the User Model
 
 1. Create a new file in the `models` directory called `User.js`.
-1. Create a basic user model. To keep things simple, our model is going to be super streamlined with just `email` and `password` fields.
+1. Create a basic user model. To keep things simple, our model is going to be super streamlined with just `email` and `password` fields. We'll also add a timestamp [option](https://mongoosejs.com/docs/guide.html#options) so we automatically get the `createdAt` and `updatedAt` fields.
 
 ```js
 const mongoose = require('../db/connection');
-
-const userSchema = new mongoose.Schema(
-  {
+const options = {
+  timestamps: true
+}
+const userSchema = new mongoose.Schema({
     email: {
       type: String,
       required: true,
@@ -198,11 +194,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-  },
-  {
-    timestamps: true,
-  }
-);
+}, options)
 
 module.exports = mongoose.model('User', userSchema);
 ```
@@ -302,7 +294,10 @@ router.post('/signup', (req, res, next) => {
 In order for this to work, we also have to include the [express JSON middleware](http://expressjs.com/en/api.html#express.json) in `index.js`:
 
 ```js
-app.use(express.json())
+// Add `express.json` middleware which will
+// parse JSON requests into JS objects before
+// they reach the route files.
+app.use(express.json());
 ```
 
 Check out [this medium article](https://medium.com/gist-for-js/use-of-res-json-vs-res-send-vs-res-end-in-express-b50688c0cddf) or the express docs to learn more about the differences between `.json` and `.send`.
@@ -317,30 +312,16 @@ You may have noticed that when you created a new user, you got back a user docum
 1. Update the schema as follows to add a virtual:
 
 ```js
-const userSchema = new mongoose.Schema(
-  {
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-    },
-    password: {
-      type: String,
-      required: true,
-    },
-  },
-  {
+const options = { 
     timestamps: true,
-    toJSON: {
-      virtuals: true,
-      // ret is the returned Mongoose document
-      transform: (_doc, ret) => {
-        delete ret.password;
-        return ret;
-      },
+    toJSON: { 
+        virtuals: true,
+        transform: (_doc, userDocToReturn) => {
+            delete userDocToReturn.password
+            return userDocToReturn
+        }
     },
-  }
-);
+}
 ```
 
 Create a new user in Postman. :tada: No more password being sent! However, it seems we introduced another issue. Now, we have both an `_id` and an `id` field. Technically, this additional `id` field is just a virtual because we used a toJSON virtual. You can verify that itʼs not storing the value in MongoDB separately. If it bugs you, you can add `id: false` as a key/value pair in the options object that has the `timestamps` and `toJSON` properties.

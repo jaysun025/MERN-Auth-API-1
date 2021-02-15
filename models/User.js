@@ -1,20 +1,26 @@
 const mongoose = require('../db/connection')
 
-const userSchema = new mongoose.Schema(
-    {
-        email: {
-            type: String,
-            required: true,
-            unique: true
-        },
-        password: {
-            type: String,
-            required: true
-        },
+const options = { 
+    timestamps: true,
+    toJSON: { 
+        virtuals: true,
+        transform: (_doc, userDocToReturn) => {
+            delete userDocToReturn.password
+            return userDocToReturn
+        }
     },
-    {
-        timestamps: true
-    }
-)
+}
+
+const userSchema = new mongoose.Schema({
+    email: {
+        type: String,
+        required: true,
+        unique: true
+    },
+    password: {
+        type: String,
+        required: true
+    },
+}, options)
 
 module.exports = mongoose.model('User', userSchema)
