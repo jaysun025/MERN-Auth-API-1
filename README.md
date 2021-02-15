@@ -251,13 +251,13 @@ You'll also need to write the controller middleware for users in `index.js`:
 // SIGN UP
 // POST /api/signup
 router.post('/signup', (req, res) => {
-    console.log('hit signup post route')
+    res.send('hit signup post route')
 })
 
 // Log IN
 // POST /api/signin
 router.post('/login', (req, res) => {
-    console.log('hit login post route')
+    res.send('hit login post route')
 })
 ```
 
@@ -265,7 +265,7 @@ Import the user controllers to `index.js` underneath any other middleware you ha
 
 ```js
 // Import the user resource actions
-app.use('/api/users', require('./controllers/users'))
+app.use('/api', require('./controllers/users'))
 ```
 
 Test that these routes are being hit via Postman!
