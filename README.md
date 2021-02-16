@@ -554,6 +554,7 @@ const createUserToken = (req, user) => {
 
 module.exports = { createUserToken }
 ```
+### Finish the login route
 
 1. Import `createUserToken` into the users controller so we can call it in our `login` route:
 
@@ -569,48 +570,17 @@ router.post('/login', (req, res)=>{
   .catch(err=>console.log(err))
 })
 ```
+Now use Postman to try logging in one of your users!
 
-let's create a `JWT_SECRET` environment variable to store in it
+1. Now that we know everything is workign right, let's move our secret to our `.env` and make it an environment variable called `JWT_SECRET`.
 
 ```
 JWT_SECRET=some string value only your app knows
 ```
 
-### Add the Signin Controller
+Make sure to change your secret to `process.env.JWT_SECRET` in `auth.js` where you set the `options` object, and also where you call `jwt.sign`
 
-Now that we have a way to create a token for users when they login, we can add the logic to our `/signin` route.
-
-1. Open the `controllers/users.js` file.
-1. Use destructuring to require `createUserToken` from the auth file:
-
-```js
-const { createUserToken } = require('../middleware/auth');
-```
-
-3. Update the `/signin` route as follows:
-
-```js
-// SIGN IN
-// POST /api/signin
-router.post('/signin', (req, res, next) => {
-  User.findOne({ email: req.body.email })
-    // Pass the user and the request to createUserToken
-    .then((user) => createUserToken(req, user))
-    // createUserToken will either throw an error that
-    // will be caught by our error handler or send back
-    // a token that we'll in turn send to the client.
-    .then((token) => res.json({ token }))
-    .catch(next);
-});
-```
-
-Go test signing up in Postman!!! Use a POST request that has a body containing an JSON object with an email and hashed password (copy it from what you got back when you signed up). You should now see a response that looks like:
-
-```js
-{
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlNGQ4NWE0ODE4ODVhM2Q4ZjE5NTNhNSIsImlhdCI6MTU4MjIwMjAyNSwiZXhwIjoxNTgyMjM4MDI1fQ.OgmgQQ_yRyAKZlqGSglrFRjpbEwB5CnKj3HxyhznTss"
-}
-```
+Test it one more time to make sure all is good by logging in a user again (you may need to restart nodemon).
 
 We're so close to done now! All that's left is to set up our job route to use the token! Add and commit your changes.
 

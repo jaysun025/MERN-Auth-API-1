@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken')
 const bcrypt = require('bcrypt')
 
 const options = {
-    secretOrKey: 'some string value only your app knows',
+    secretOrKey: process.env.JWT_SECRET,
     // How passport should find and extract the token from the request.
     // It's a function that accepts a request as the only parameter 
     // and returns either the JWT as a string or null. 
@@ -30,6 +30,7 @@ passport.use(strategy)
 passport.initialize()
 
 const createUserToken = (req, user) => {
+    console.log('process.env.JWT_SECRET:', process.env.JWT_SECRET)
     // first, we check the password using bcrypt (you'll need to import it!)
     const validPassword = req.body.password ? 
         bcrypt.compareSync(req.body.password, user.password) : false
@@ -46,7 +47,7 @@ const createUserToken = (req, user) => {
         err.statusCode = 422
         throw err
     } else { // otherwise create and sign a new token
-        return jwt.sign({ id: user._id }, 'some string value only your app knows', {expiresIn: 3600})
+        return jwt.sign({ id: user._id }, process.env.JWT_SECRET, {expiresIn: 3600})
     }
 }
 
