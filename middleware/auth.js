@@ -10,8 +10,14 @@ const options = {
     jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken()
 }
 
-// construct the strategy (will define options and verifyCallback soon)
-const strategy = new Strategy(options, verifyCallback)
+const verifyUser = (jwt_payload, done) {
+    User.findById(jwt_payload.id)
+      .then(foundUser => done(null, user))
+      .catch(err => done(err))
+  }
+
+// construct the strategy
+const strategy = new Strategy(options, findUser)
 
 // Now that we've constructed the strategy, we 'register' it so that
 // passport uses it when we call the `passport.authenticate()`

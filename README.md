@@ -420,8 +420,8 @@ npm i passport-jwt
 const passport = require('passport')
 const Strategy = require('passport-jwt').Strategy
 
-// construct the strategy (will define options and verifyCallback soon)
-const strategy = new Strategy(options, verifyCallback)
+// construct the strategy (will define options and findUser soon)
+const strategy = new Strategy(options, findUser)
 
 ...
 ```
@@ -431,8 +431,8 @@ const Strategy = require('passport-jwt').Strategy
 
 const options = {}
 
-// construct the strategy (will define options and verifyCallback soon)
-const strategy = new Strategy(options, verifyCallback)
+// construct the strategy (will define options and findUser soon)
+const strategy = new Strategy(options, findUser)
 ```
 1. The options object requires a `secretOrKey` field
 
@@ -443,10 +443,10 @@ const options = {
   secretOrKey: 'some string value only your app knows'
 }
 
-// construct the strategy (will define options and verifyCallback soon)
-const strategy = new Strategy(options, verifyCallback)
+// construct the strategy (will define options and findUser soon)
+const strategy = new Strategy(options, findUser)
 ```
-1. The other required option field is `jwtFromRequest`. This has to be a function that accepts a request as the only parameter and returns either the JWT as a string or null. This is called an *extractor function* because extracts the JWT from the request object. Passport provides several built-in extractor functions and we will use `fromAuthHeaderAsBearerToken()`, which looks for the JWT in the authorization header with the scheme 'bearer'. Visit the passport docs on [extracting the JWT from the request](http://www.passportjs.org/packages/passport-jwt/#extracting-the-jwt-from-the-request) for more details.
+1. The other required option field is `jwtFromRequest`. This has to be a function that accepts the request object as the only parameter and returns either the JWT as a string or null. This is called an *extractor function* because extracts and deserializes the JWT from the request object. Passport provides several built-in extractor functions and we will use `fromAuthHeaderAsBearerToken()`, which looks for the JWT in the authorization header with the scheme 'bearer'. Visit the passport docs on [extracting the JWT from the request](http://www.passportjs.org/packages/passport-jwt/#extracting-the-jwt-from-the-request) for more details.
 
 ```js
 const Strategy = require('passport-jwt').Strategy
@@ -459,7 +459,17 @@ const options = {
 }
 ```
 
+1. Now we need to write the verification callback that gets passed as the second argument to the `Strategy` constructor. This callback is where we write custom code to go get the user's info from the database based on the token info. It will receive two arguments automatically:
+* The deserialized JWT payload that has been extracted from the request object, which will contain the user's id
+* A `done` callback that is ready to receive the user object and pass it onto our routes. It takes any errors that happen along the way as the first argument, and the user object as the second.
 
+```js
+const verifyUser = (jwt_payload, done) {
+  User.findById(jwt_payload.id)
+    .then(foundUser => done(null, user))
+    .catch(err => done(err))
+}
+```
 
 and : `npm i jsonwebtoken`.
 1. Add the following code to `auth.js`. This code configures Passport to get the id for us out of the request token, find the matching user in the database and then add that user to the request object. It exports a middleware called `requireToken` that we can add to our routes where we want them to be accessible only for authenticated users. The `createUserToken` uses the `jsonwebtoken` package to create and encrypt the tokens according to the standard, which we'll call from our `/signin` route.
