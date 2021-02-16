@@ -471,6 +471,59 @@ const verifyUser = (jwt_payload, done) {
 }
 ```
 
+1. Each time the user logs in, we'll need to create a token for them. We will create a function that uses the [jsonwebtoken](https://www.npmjs.com/package/jsonwebtoken) package to do exacly that. First install the package and import it into the `auth.js` file:
+```bash
+npm install jsonwebtoken
+```
+```js
+const jwt = require('jsonwebtoken')
+```
+
+1. Now we write the function to be exported:
+
+```js
+...
+
+// Initialize the passport middleware based on the above configuration
+passport.initialize()
+
+// we will export this and use it in the login route to create a token each time a user logs in
+const createUserToken = (req, user) => {
+    // first, we check the password using bcrypt (you'll need to import it!)
+    const validPassword = req.body.password ? 
+        bcrypt.compareSync(req.body.password, user.password) : false
+    // The following is equivalent:
+        // const validPassword
+        // if(req.body.password) {
+        //     validPassword = bcrypt.compareSync(req.body.password, user.password)
+        // } else {
+        //     validPassword = false
+        // }
+    // if we didn't get a user or the password wasn't validated, then throw error
+    if(!user || !validPassword){
+        const err = new Error('The provided username or password is incorrect')
+        err.statusCode = 422
+        throw err
+    } else { // otherwise create and sign a new token
+        return jwt.sign({ id: user._id }, 'some string value only your app knows', {expiresIn: 3600})
+    }
+}
+
+module.exports = { createUserToken }
+```
+
+, then export it so we can use it in our `/api/login` route:
+
+```js
+...
+
+// Initialize the passport middleware based on the above configuration
+passport.initialize()
+
+
+
+```
+
 and : `npm i jsonwebtoken`.
 1. Add the following code to `auth.js`. This code configures Passport to get the id for us out of the request token, find the matching user in the database and then add that user to the request object. It exports a middleware called `requireToken` that we can add to our routes where we want them to be accessible only for authenticated users. The `createUserToken` uses the `jsonwebtoken` package to create and encrypt the tokens according to the standard, which we'll call from our `/signin` route.
 
