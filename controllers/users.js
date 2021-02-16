@@ -2,6 +2,7 @@ const express = require('express')
 const router = express.Router()
 const User = require('../models/User')
 const bcrypt = require('bcrypt')
+const { createUserToken } = require('../middleware/auth')
 
 // SIGN UP
 // POST /api/signup
@@ -15,8 +16,11 @@ router.post('/signup', (req, res) => {
 
 // LOG IN
 // POST /api/login
-router.post('/login', (req, res) => {
-    res.send('hit login post route')
+router.post('/login', (req, res)=>{
+    User.findOne({email: req.body.email})
+    .then(foundUser=>createUserToken(req, foundUser))
+    .then(token=>res.json({token}))
+    .catch(err=>console.log(err))
 })
 
 module.exports = router

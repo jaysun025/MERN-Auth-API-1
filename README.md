@@ -464,14 +464,16 @@ const options = {
 * A `done` callback that is ready to receive the user object and pass it onto our routes. It takes any errors that happen along the way as the first argument, and the user object as the second.
 
 ```js
-const verifyUser = (jwt_payload, done) {
+const findUser = (jwt_payload, done) {
   User.findById(jwt_payload.id)
     .then(foundUser => done(null, user))
     .catch(err => done(err))
 }
 ```
 
-1. Each time the user logs in, we'll need to create a token for them. We will create a function that uses the [jsonwebtoken](https://www.npmjs.com/package/jsonwebtoken) package to do exacly that. First install the package and import it into the `auth.js` file:
+1. Each time the user logs in, we'll need to create a token for them. We will create a function that uses the [jsonwebtoken](https://www.npmjs.com/package/jsonwebtoken) `.sign` method to turn the user id and secret into a JWT using the RSA SHA256 algorithm. RSA SHA256 will first hash the user id and the secret using the SHA256 algorithm, then encrypt that hash using the RSA algorithm.
+
+ First install the package and import it into the `auth.js` file:
 ```bash
 npm install jsonwebtoken
 ```
@@ -479,9 +481,11 @@ npm install jsonwebtoken
 const jwt = require('jsonwebtoken')
 ```
 
-1. Now we write the function to be exported:
+1. Now we import bcrypt and write the function to be exported:
 
 ```js
+...
+const bcrypt = require('bcrypt')
 ...
 
 // Initialize the passport middleware based on the above configuration
@@ -508,108 +512,62 @@ const createUserToken = (req, user) => {
         return jwt.sign({ id: user._id }, 'some string value only your app knows', {expiresIn: 3600})
     }
 }
+```
+
+1. Now export `createUserToken` at the bottom of `auth.js` so we can use it in our `/api/login` route. So far, your `auth.js` should look like this:
+
+```js
+const passport = require('passport')
+const Strategy = require('passport-jwt').Strategy
+const ExtractJwt = require('passport-jwt').ExtractJwt
+const jwt = require('jsonwebtoken')
+const bcrypt = require('bcrypt')
+
+const options = {
+    secretOrKey: 'some string value only your app knows',
+    jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken()
+}
+
+const findUser = (jwt_payload, done) => {
+    User.findById(jwt_payload.id)
+      .then(foundUser => done(null, user))
+      .catch(err => done(err))
+}
+
+const strategy = new Strategy(options, findUser)
+
+passport.use(strategy)
+
+passport.initialize()
+
+const createUserToken = (req, user) => {
+    const validPassword = req.body.password ? 
+        bcrypt.compareSync(req.body.password, user.password) : false
+    if(!user || !validPassword){
+        const err = new Error('The provided username or password is incorrect')
+        err.statusCode = 422
+        throw err
+    } else { 
+        return jwt.sign({ id: user._id }, 'some string value only your app knows', {expiresIn: 3600})
+    }
+}
 
 module.exports = { createUserToken }
 ```
 
-, then export it so we can use it in our `/api/login` route:
+1. Import `createUserToken` into the users controller so we can call it in our `login` route:
 
 ```js
 ...
-
-// Initialize the passport middleware based on the above configuration
-passport.initialize()
-
-
-
-```
-
-and : `npm i jsonwebtoken`.
-1. Add the following code to `auth.js`. This code configures Passport to get the id for us out of the request token, find the matching user in the database and then add that user to the request object. It exports a middleware called `requireToken` that we can add to our routes where we want them to be accessible only for authenticated users. The `createUserToken` uses the `jsonwebtoken` package to create and encrypt the tokens according to the standard, which we'll call from our `/signin` route.
-
-```js
-// Require the needed npm packages
-const passport = require('passport');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-
-// Create a secret to be used to encrypt/decrypt the token
-// This can be any string value you want -- even gibberish.
-const secret =
-  process.env.JWT_SECRET || 'some string value only your app knows';
-
-// Require the specific `strategy` we'll use to authenticate
-// Require the method that will handle extracting the token
-// from each of the requests sent by clients
-const { Strategy, ExtractJwt } = require('passport-jwt');
-
-// Minimum required options for passport-jwt
-const opts = {
-  // How passport should find and extract the token from
-  // the request.  We'll be sending it as a `bearer` token
-  // when we make requests from our front end.
-  jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-  // Any secret string to use that is unique to your app
-  // We should store this in an environment variable so it
-  // isn't ever pushed to GitHub!
-  secretOrKey: secret,
-};
-
-// Require the user model
-const User = require('../models/User');
-
-// The callback will be passed the data that was
-// extracted and decrypted by passport from the token that we get from
-// the client request!  This data (jwt_payload) will include the user's id!
-const strategy = new Strategy(opts, function (jwt_payload, done) {
-  // In the callback we run our custom code. With the data extracted from
-  // the token that we're passed as jwt_payload we'll have the user's id.
-  // Using Mongoose's `.findOneById()` method, we find the user in our database
-  User.findById(jwt_payload.id)
-    // To pass the user on to our route, we use the `done` method that
-    // that was passed as part of the callback.  The first parameter of
-    // done is an error, so we'll pass null for that argument and then
-    // pass the user doc from Mongoose
-    .then((user) => done(null, user))
-    // If there was an error, we pass it to done so it is eventually handled
-    // by our error handlers in Express
-    .catch((err) => done(err));
-});
-
-passport.use(strategy);
-passport.initialize();
-
-// Create a variable that holds the authenticate method so we can
-// export it for use in our routes
-const requireToken = passport.authenticate('jwt', { session: false });
-
-// Create a function that takes the request and a user document
-// and uses them to create a token to send back to the user
-const createUserToken = (req, user) => {
-  // Make sure that we have a user, if it's null that means we didn't
-  // find the email in the database.  If there is a user, make sure
-  // that the password is correct.  For security reason, we don't want
-  // to tell the client whether the email was not found or that the
-  // password was incorrect.  Instead we send the same message for both
-  // making it much harder for hackers.
-  if (
-    !user ||
-    !req.body.password ||
-    !bcrypt.compareSync(req.body.password, user.password)
-  ) {
-    const err = new Error('The provided username or password is incorrect');
-    err.statusCode = 422;
-    throw err;
-  }
-  // If no error was thrown, we create the token from user's id and
-  // return the token
-  return jwt.sign({ id: user._id }, secret, { expiresIn: 36000 });
-};
-
-module.exports = {
-  requireToken,
-  createUserToken,
-};
+const { createUserToken } = require('../middleware/auth')
+...
+// POST /api/login
+router.post('/login', (req, res)=>{
+  User.findOne({email: req.body.email})
+  .then(foundUser=>createUserToken(req, foundUser))
+  .then(token=>res.json({token}))
+  .catch(err=>console.log(err))
+})
 ```
 
 let's create a `JWT_SECRET` environment variable to store in it

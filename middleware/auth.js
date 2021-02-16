@@ -2,6 +2,7 @@ const passport = require('passport')
 const Strategy = require('passport-jwt').Strategy
 const ExtractJwt = require('passport-jwt').ExtractJwt
 const jwt = require('jsonwebtoken')
+const bcrypt = require('bcrypt')
 
 const options = {
     secretOrKey: 'some string value only your app knows',
@@ -11,7 +12,7 @@ const options = {
     jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken()
 }
 
-const verifyUser = (jwt_payload, done) => {
+const findUser = (jwt_payload, done) => {
     User.findById(jwt_payload.id)
       .then(foundUser => done(null, user))
       .catch(err => done(err))
