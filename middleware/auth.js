@@ -1,12 +1,12 @@
 const passport = require('passport')
 const Strategy = require('passport-jwt').Strategy
+const ExtractJwt = require('passport-jwt').ExtractJwt
 
 const options = {
     secretOrKey: 'some string value only your app knows',
-    // How passport should find and extract the token from
-    // the request.
-    jwtFromRequest: 
-  }
+    // How passport should find and extract the token from the request.
+    jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken()
+}
 
 // construct the strategy (will define options and verifyCallback soon)
 const strategy = new Strategy(options, verifyCallback)
