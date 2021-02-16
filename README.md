@@ -26,6 +26,7 @@ First let's quickly set up a basic project environment.
 MERN-AUTH-API
     ├── index.js
     ├── controllers
+    ├── middleware
     ├── models
     └── db
 ```
@@ -368,10 +369,66 @@ JWT is an open standard and an excellent choice for modern applications based on
 
 Each Passport strategy has to be configured for your specific app. Basically, Passport gives us a callback and we fill it in with any logic needed to get the user from our database that matches some bit of data that Passport extracts from a request. After configuring the strategy with the code to retrieve the user from the database, we register the strategy, and initialize Passport.
 
-Once initialized, weʼll run the passport strategy as route middleware. When run as middleware, Passport receives the request, extracts and decrypts the user’s token, adds it to the request object and then passes the request with the user object in it on to the controller in route that called it (or the next route middleware).
+Once initialized, weʼll run the passport strategy as route middleware. When run as middleware, Passport receives the request, extracts the user information from the token, then attaches the user info back to the request object so it is accessible by whatever action (route) it hits.
 
-1. Start by installing the npm packages with: `npm i passport passport-jwt jsonwebtoken`.
 1. Create a new file in the `middleware` directory called `auth.js`.
+1. Install passport
+```bash
+npm i passport
+```
+1. import it into `auth.js`. Stub out the generic passport structure:
+
+```js
+const passport = require('passport')
+
+// construct the strategy (TODO)
+const strategy
+
+// 'Register' the strategy so that passport uses it
+//  when we call the `passport.authenticate()`
+//  method later in our routes
+passport.use(strategy)
+
+// Initialize the passport middleware based on the above configuration
+passport.initialize()
+```
+
+1. Install passport's [JWT strategy](http://www.passportjs.org/packages/passport-jwt/)
+```bash
+npm i passport-jwt
+```
+1. import the `Strategy` constructor from `passport-jwt and construct the strategy:
+```js
+const passport = require('passport')
+const Strategy = require('passport-jwt').Strategy
+
+// construct the strategy (will define options and verifyCallback soon)
+const strategy = new Strategy(options, verifyCallback)
+
+...
+```
+1. Create an `options` object that we'll pass into the `Strategy` constructor.
+```js
+const Strategy = require('passport-jwt').Strategy
+
+const options = {}
+
+// construct the strategy (will define options and verifyCallback soon)
+const strategy = new Strategy(options, verifyCallback)
+```
+1. The options object requires a `secretOrKey` field
+
+```js
+const Strategy = require('passport-jwt').Strategy
+
+const options = {
+  secretOrKey: 'some string value only your app knows'
+}
+
+// construct the strategy (will define options and verifyCallback soon)
+const strategy = new Strategy(options, verifyCallback)
+```
+1. and : `npm i jsonwebtoken`.
 1. Add the following code to `auth.js`. This code configures Passport to get the id for us out of the request token, find the matching user in the database and then add that user to the request object. It exports a middleware called `requireToken` that we can add to our routes where we want them to be accessible only for authenticated users. The `createUserToken` uses the `jsonwebtoken` package to create and encrypt the tokens according to the standard, which we'll call from our `/signin` route.
 
 ```js
@@ -405,10 +462,7 @@ const opts = {
 // Require the user model
 const User = require('../models/User');
 
-// We're configuring the strategy using the constructor from passport
-// so we call new and pass in the options we set in the `opts` variable.
-// Then we pass it a callback function that passport will use when we call
-// this as middleware.  The callback will be passed the data that was
+// The callback will be passed the data that was
 // extracted and decrypted by passport from the token that we get from
 // the client request!  This data (jwt_payload) will include the user's id!
 const strategy = new Strategy(opts, function (jwt_payload, done) {
@@ -426,12 +480,7 @@ const strategy = new Strategy(opts, function (jwt_payload, done) {
     .catch((err) => done(err));
 });
 
-// Now that we've constructed the strategy, we 'register' it so that
-// passport uses it when we call the `passport.authenticate()`
-// method later in our routes
 passport.use(strategy);
-
-// Initialize the passport middleware based on the above configuration
 passport.initialize();
 
 // Create a variable that holds the authenticate method so we can
@@ -465,6 +514,12 @@ module.exports = {
   requireToken,
   createUserToken,
 };
+```
+
+let's create a `JWT_SECRET` environment variable to store in it
+
+```
+JWT_SECRET=some string value only your app knows
 ```
 
 ### Add the Signin Controller
@@ -579,55 +634,6 @@ router.delete('/:id', handleValidateId, requireToken, (req, res, next) => {
 
 Phew... that was a lot! All that's left now is to add the sign out feature.
 
-## Update Database Seed Method
-
-Now that we need each of our job documents to have an owner on them, lets update `db/seed.js` to do that for us. We'll create a new function that takes an email as an argument from the command line when the file is run and finds the user in the database. Then, we'll loop over the json file in memory and add a new owner property with the userʼs id.
-
-To run the file from the command line, make sure you're in the root of your project directory and type: `node db/seed.js em@il` and replace _em@il_ with an email address that matches one of the users in your database.
-
-1. Open `db/seed.js`.
-1. Replace the file contents with the follow:
-
-```js
-const User = require('../models/User');
-const Job = require('../models/Job');
-const seedData = require('./seeds.json');
-
-const getUser = async () => {
-  try {
-    if (!process.argv[2]) {
-      throw new Error(
-        'To seed the database provide an email address for an existing user'
-      );
-    }
-    const user = await User.findOne({ email: process.argv[2] });
-    if (!user) {
-      throw new Error('No matching user found!');
-    }
-    return user;
-  } catch (error) {
-    console.error(error);
-  }
-};
-
-Job.deleteMany()
-  .then(getUser)
-  .then((user) => {
-    const seedDataWithOwner = seedData.map((job) => {
-      job.owner = user._id;
-      return job;
-    });
-    return Job.insertMany(seedDataWithOwner);
-  })
-  .then(console.log)
-  .then(console.error)
-  .finally(() => {
-    process.exit();
-  });
-```
-
-Test it out!
-
 ## Setup Postman to Run Tests Sequentially
 
 Postman actually contains a ton of helpful features for running API tests. One feature that can be particularly helpful is the ability to set up an environment for your API that stores variables. Even better, we can automatically update the variables when we receive a response from the server. This is especially helpful when you're dealing with requests that are dependent upon data other requests. For example, we now have to set that long-ass token into the Authorization header of everyone of our POST, DELETE and PUT routes for our job resource, and since the token expires after some time, we’ll have to do it regularly.
@@ -638,11 +644,8 @@ Postman actually contains a ton of helpful features for running API tests. One f
 1. Click on the gear icon (:gear:) on the top right side of the window just below the taskbar.
 1. When the Manage Environments modal appears, click the orange Add button at the bottom of the modal.
 1. Give your environment a descriptive name such as **Job Board API**.
-<<<<<<< HEAD
 1. For the first variable, name it `url` and set the **initial value** and **current value** column to: `http://localhost:8000/api`.
-=======
-1. For the first variable, name it `url` and set the **initial value** and **current value** column to: `http://localhost:4000/api`.
->>>>>>> fc971b72c8012822e792821425072945ceb723a1
+
 1. Add a second variable named `id` and set its initial value to an empty string (`''`).
 1. Add a third variable named `token` and also set its initial value to an empty string (`''`).
 1. Click the orange Add button on this screen and then close the modal by clicking the x in the upper right corner.
