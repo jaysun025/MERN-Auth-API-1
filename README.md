@@ -43,7 +43,7 @@ git commit -m "Initial commit"
 13. Create a new repository on GitHub and copy the code in the section that reads: **`…or push an existing repository from the command line`** by clicking the copy icon on the right side of the code block.
 1. Paste the code in the Terminal window.
 
-### TODO: Set up cluster on Atlas
+### Set up cluster on Atlas
 
 First, let's set our app up to use Atlas instead of our local mongo database.
 

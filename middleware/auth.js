@@ -5,6 +5,8 @@ const ExtractJwt = require('passport-jwt').ExtractJwt
 const options = {
     secretOrKey: 'some string value only your app knows',
     // How passport should find and extract the token from the request.
+    // It's a function that accepts a request as the only parameter 
+    // and returns either the JWT as a string or null. 
     jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken()
 }
 
