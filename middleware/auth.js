@@ -18,4 +18,3 @@ passport.use(strategy)
 
 // Initialize the passport middleware based on the above configuration
 passport.initialize()
-

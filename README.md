@@ -45,6 +45,24 @@ git commit -m "Initial commit"
 
 ### TODO: Set up cluster on Atlas
 
+First, let's set our app up to use Atlas instead of our local mongo database.
+
+[DOCS](https://docs.atlas.mongodb.com/getting-started/)
+
+1. Create a an account [here](https://account.mongodb.com/account/register)
+
+2. Create a free tier cluster by following [these instructions](https://docs.atlas.mongodb.com/tutorial/deploy-free-tier-cluster/)
+ * **NOTE:** Step 3's screenshots haven't been updated so it may look a little different when you do it. Just make sure to choose the *free* tier.
+ * **TODO:** Add notes about why you may pick one region over another.
+3. Go to Securty > Network Access (from menu on left of page) to [Whitelist your IP address](https://docs.atlas.mongodb.com/tutorial/whitelist-connection-ip-address/)
+ * Whitelist your current IP address and also click the *allow access from anywhere* button
+4. Go to Security > Database Access to [add a user](https://docs.atlas.mongodb.com/tutorial/create-mongodb-user-for-cluster/)
+ * **NOTE:** Make sure you know the password!!!
+5. [Connect your cluster](https://docs.atlas.mongodb.com/tutorial/connect-to-your-cluster/):
+ * Click "connect", then "connect your application"
+ * choose the NodeJS driver for step 1
+ * copy the connection string from step 2 (we'll use it in the next step)
+
 ### Connect to MongoDB
 
 1. Create a file in the `db` directory called `connection.js` and add the following code:
