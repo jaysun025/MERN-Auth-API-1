@@ -584,9 +584,9 @@ router.post('/login', (req, res)=>{
   .catch(err=>console.log(err))
 })
 ```
-Now use Postman to try logging in one of your users!
+Now use Postman to try out both of these routes - if the response looks like a nasty hash, you're golden!
 
-1. Now that we know everything is workign right, let's move our secret to our `.env` and make it an environment variable called `JWT_SECRET`.
+1. Now that we know everything is working right, let's move our secret to our `.env` and make it an environment variable called `JWT_SECRET`.
 
 ```
 JWT_SECRET=some string value only your app knows
@@ -644,14 +644,6 @@ router.post('/login', (req, res, next)=>{
 
 ### Handling Errors in Express APIs
 
-In production environments, we might have dozens of errors that we explicitly handle. We're going to handle just a few of the common ones to cover the following scenarios:
-
-- No document is found in the database matching a query by id. Should respond with 404 Not Found.
-- An id is not a valid MongoDB id. Should respond with 404 Not Found.
-- The data provided with the request isn't valid according to our schema (such as not supplying a required property). Should respond with 422 Unprocessable Entity.
-- The user doesn't have the required authorization to delete, edit or create a new document. Should respond with 401 Unauthorized.
-- A generic catch all for any other errors that occur. Should respond with 500 Internal Server Error.
-
 Add the following to the `index.js` file right before our variable where we define the port on which our server is running. Be sure it comes **AFTER** all of our controllers, as this is the last thing that will be run in the middleware chain! This will be invoked anytime our app hits a `.catch(next)` in a route (i.e. anytime an error is thrown).
 
 ```js
@@ -672,11 +664,39 @@ Try logging in a user that doesn't exist to see this in action.
 
 Any time an error is thrown in a promise chain, it will be handled by the `.catch()` method which invokes the `next` callback and passes it the error as an argument. When `next` is called with any value, [Express automatically treats the argument it is passed as an error](https://expressjs.com/en/guide/error-handling.html) and sends it to our middleware above. If the error is thrown _outside_ a promise chain, it also automatically gets sent to the middleware above simply because it's an error.
 
-We can take advantage of this by creating some custom errors that we can throw when we want to control exactly what is sent back to the client!
-
-We can take advantage of this by creating some custom errors that we can throw when we want to control exactly what is sent back to the client!
+We can take advantage of this by creating some custom errors that we can throw when we want to control exactly what is sent back to the client! First, let's move our error handling middleware into it's own file.
 
 1. Create a new file inside the `middleware` directory called `custom_errors.js`.
+1. Move the bottom-most  middleware (that we just added) from `index.js` to a method called `handleErrors` in `custom_errors.js`. We also need to export it!
+```js
+const handleErrors = (err, req, res, next) => {
+    // If the error contains a status code, set the 
+    // set the variable to that code
+    // if not, set it to a default 500 code
+    const statusCode = err.statusCode || 500
+    // If the error constains a message, set the variable to that message
+    // if not, set it to a generic 'Internal Server Error'
+    const message = err.message || 'Internal Server Error'
+    // Set the status and send the message as a response to the client
+    res.status(statusCode).send(message)
+}
+
+module.exports = { handleErrors }
+```
+
+1. Now we need to update `index.js` to import `handleErrors` at the top, and `app.use` it at the bottom, just before `app.listen`:
+```js
+...
+const { handleErrors } = require('./middleware/custum_errors')
+...
+app.use(handleErrors)
+
+app.listen(process.env.PORT || 8000, ()=>{
+    console.log('SEI MERN AUTH API RUNNING')
+})
+```
+
+
 1. Inside `custom_errors.js`, we'll start by defining a bunch of custom error types. The easiest way to do this is with ES6 class syntax. Add the following code to `custom_errors.js` file:
 
 ```js
