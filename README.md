@@ -20,7 +20,7 @@ First let's quickly set up a basic project environment.
 1. Install dependencies with `npm i express cors mongoose dotenv`.
 1. Open the directory in VS Code with `code .`.
 
-1.  Create your directory folders:
+1.  Your directory should look like this:
 <!-- INIT_DIRECTORY_DIAGRAM - START -->
 ```md
 MERN-AUTH-API
