@@ -2,9 +2,7 @@ const express = require('express')
 const router = express.Router()
 const User = require('../models/User')
 const bcrypt = require('bcrypt')
-const { createUserToken } = require('../middleware/auth')
-const passport = require('passport')
-
+const { createUserToken, requireToken } = require('../middleware/auth')
 
 // SIGN UP
 // POST /api/signup
@@ -37,7 +35,7 @@ router.post('/login', (req, res)=>{
 // this is an example of a protected route
 // the client must send a valid token to get 
 // the response from this route
-router.get('/private', passport.authenticate('jwt', {session: false}), (req, res)=>{
+router.get('/private', requireToken, (req, res)=>{
     return res.json({"message": "thou hath been granted permission to access this route!"})
 })
 

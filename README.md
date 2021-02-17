@@ -639,12 +639,12 @@ router.get('/private', (req, res)=>{
 
 Try hitting this route in postman. No problem, right? Wrong! This means any joe blow could hit this route, logged in or not! Let's add the the passport middleware that allows us to authenticate the user based on the token sent by the client.
 
-Start by importing Passport at the top:
+1. Start by importing Passport at the top:
 ```js
 const passport = require('passport')
 ```
 
-Then add the `passport.authenticate` middleware to the route:
+1. Then add the `passport.authenticate` middleware to the route:
 
 ```js
 // PRIVATE
@@ -657,7 +657,28 @@ router.get('/private', passport.authenticate('jwt', {session: false}), (req, res
 })
 ```
 
-Now try to hit the route in postman - what happens? You're not authorized! 
+Now try to hit the route in postman - what happens? You're not authorized!
+
+1. You will likely have several routes that need this middelware, so let's make writing it out a little more concise. Store this method in a variable called `requireToken` at the bottom of `auth.js` and add it to the export:
+
+```js
+// Create a variable that holds the authenticate method so we can
+// export it for use in our routes
+const requireToken = passport.authenticate('jwt', {session: false})
+
+module.exports = { createUserToken, requireToken }
+```
+
+1. Now just add `requireToken` to the import at the top of the user controller, and replace it in the route arguments:
+
+```js
+...
+const { createUserToken, requireToken } = require('../middleware/auth')
+...
+router.get('/private', requireToken, (req, res)=>{
+    return res.json({"message": "thou hath been granted permission to access this route!"})
+})
+```
 
 ### Set the Authorization Header in the Request
 

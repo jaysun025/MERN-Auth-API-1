@@ -56,4 +56,8 @@ const createUserToken = (req, user) => {
     }
 }
 
-module.exports = { createUserToken }
+// Create a variable that holds the authenticate method so we can
+// export it for use in our routes
+const requireToken = passport.authenticate('jwt', {session: false})
+
+module.exports = { createUserToken, requireToken }
