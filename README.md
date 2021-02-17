@@ -72,8 +72,8 @@ const mongoose = require('mongoose');
 const DB_CONNECTION_STRING = `<put your connection string here>`
 
 mongoose
-  .connect()
-  .then((DB_CONNECTION_STRING) =>
+  .connect(DB_CONNECTION_STRING)
+  .then(instance =>
     console.log(`Connected to db: ${instance.connections[0].name}`)
   )
   .catch((error) => console.log('Connection failed!', error));
