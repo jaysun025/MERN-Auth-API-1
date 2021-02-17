@@ -13,7 +13,7 @@ First let's quickly set up a basic project environment.
 1. From the command line, create a new directory and switch into it with `mkdir MERN-AUTH-API` && `cd MERN-AUTH-API`.
 1. Run `git init` to initialize the repository for Git.
 1. Create a `.gitignore` and add the node_modules directory to it with `echo node_modules > .gitignore`.
-1. Create a `.env` file with `touch .env` and add it to your `.gitignore` with `echo .env >> .gitignore`
+1. Create a `.env` file with `touch .env` and add it to your `.gitignore` with `echo .env >> .gitignore`.
 1. Create an `index.js` file with `touch index.js`.
 1. Create some directories inside your project to organize your code with `mkdir models db controllers middleware`.
 1. Run `npm init -y` to initialize the repository for npm.
