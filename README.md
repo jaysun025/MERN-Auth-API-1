@@ -2,7 +2,7 @@
 
 # Express API & Authentication
 
-Throughout this tutorial, we'll build an Express API as the back end to a boilplate application that has users and authenticates them using Passport middleware.
+Throughout this tutorial, we'll build an Express API as the back end to a boilerplate application that has users and authenticates them using Passport middleware.
 
 ## Basic Express API Setup
 
@@ -10,10 +10,10 @@ First let's quickly set up a basic project environment.
 
 ### Scaffold the Project
 
-1. From the command line, create a new directory and switch into it with `mkdir MERN-AUTH-API && cd MERN-AUTH-API`.
+1. From the command line, create a new directory and switch into it with `mkdir MERN-AUTH-API` && `cd MERN-AUTH-API`.
 1. Run `git init` to initialize the repository for Git.
-1. Create a `.gitignore` and add the node_modules directory to it with `echo node_modules > .gitignore`
-1. Creat a `.env` file with `touch .env`
+1. Create a `.gitignore` and add the node_modules directory to it with `echo node_modules > .gitignore`.
+1. Create a `.env` file with `touch .env` and add it to your `.gitignore` with `echo .env >> .gitignore`
 1. Create an `index.js` file with `touch index.js`.
 1. Create some directories inside your project to organize your code with `mkdir models db controllers middleware`.
 1. Run `npm init -y` to initialize the repository for npm.
