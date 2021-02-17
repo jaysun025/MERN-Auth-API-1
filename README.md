@@ -570,7 +570,7 @@ router.post('/signup', (req, res, next) => {
 //.then(createdUser => res.status(201).json(createdUser))
   .then(createdUser => createUserToken(req, createdUser))
   .then(token => res.json({token}))
-  .catch(next)
+  .catch(err => console.log('ERROR CREATING USER:', ERR))
 })
 ```
 
@@ -581,10 +581,12 @@ router.post('/login', (req, res)=>{
   User.findOne({email: req.body.email})
   .then(foundUser=>createUserToken(req, foundUser))
   .then(token=>res.json({token}))
-  .catch(err=>console.log(err))
+  .catch(err=>console.log('ERROR LOGGING IN:', err))
 })
 ```
-Now use Postman to try out both of these routes - if the response looks like a nasty hash, you're golden!
+Now use Postman to try out both of these routes. You should get a token as the response!
+
+Head over to [jwt.io](https://jwt.io/) to see your token decoded and you can read about the anatomy of a JSON Web Token [here](https://scotch.io/tutorials/the-anatomy-of-a-json-web-token).
 
 1. Now that we know everything is working right, let's move our secret to our `.env` and make it an environment variable called `JWT_SECRET`.
 
@@ -612,147 +614,14 @@ router.post('/signup', (req, res, next) => {
   .then(hashedUser => User.create(hashedUser))
   .then(createdUser => createUserToken(req, createdUser))
   .then(token => res.status(201).json({token}))
-  .catch(next)
-})
-```
-
-### Middleware in a Nutshell
-Pretty much everything in Express is a form of middleware. Whenever a request is received by the server, each piece of middleware is called in the order that it is used in our index file (i.e., where it is invoked with `app.use()`). Each middleware is passed the request and the response objects from Express as arguments along with a third argument method that is commonly referred to as `next`. So, any middleware can use the values in the request object or even send a response back to the client. More often than not though, middleware will simply do ‘something’ and then pass the request on to the next piece of middleware in the chain until it reaches one of our controllers where we are explicitly handling the response.
-
-It turns out that our controllers are also a form of middleware, meaning that they too can be passed a `next` argument. This is helpful to handle errors that occur. Let’s change all our routes to include a third parameter called `next` and then we'll pass it to the `.catch()` method. With this change, our routes will now look like this:
-
-```js
-// SIGN UP
-// POST /api/signup
-router.post('/signup', (req, res, next) => {
-  bcrypt.hash(req.body.password, 10)
-  .then(hash => ({email: req.body.email, password : hash }))
-  .then(hashedUser => User.create(hashedUser))
-  .then(createdUser => res.status(201).json(createdUser))
-  .catch(next)
-})
-
-// LOG IN
-// POST /api/login
-router.post('/login', (req, res, next)=>{
-    User.findOne({email: req.body.email})
-    .then(foundUser=>createUserToken(req, foundUser))
-    .then(token=>res.json({token}))
-    .catch(next)
-})
-```
-
-### Handling Errors in Express APIs
-
-Add the following to the `index.js` file right before our variable where we define the port on which our server is running. Be sure it comes **AFTER** all of our controllers, as this is the last thing that will be run in the middleware chain! This will be invoked anytime our app hits a `.catch(next)` in a route (i.e. anytime an error is thrown).
-
-```js
-// The last middleware receives any error as its first argument
-app.use((err, req, res, next) => {
-  // If the error contains a statusCode, set the variable to that code
-  // if not, set it to a default 500 code
-  const statusCode = err.statusCode || 500;
-  // If the error contains a message, set the variable to that message
-  // if not, set it to a generic 'Internal Server Error'
-  const message = err.message || 'Internal Server Error';
-  // Set the status and send the message as a response to the client
-  res.status(statusCode).send(message);
-});
-```
-
-Try logging in a user that doesn't exist to see this in action.
-
-Any time an error is thrown in a promise chain, it will be handled by the `.catch()` method which invokes the `next` callback and passes it the error as an argument. When `next` is called with any value, [Express automatically treats the argument it is passed as an error](https://expressjs.com/en/guide/error-handling.html) and sends it to our middleware above. If the error is thrown _outside_ a promise chain, it also automatically gets sent to the middleware above simply because it's an error.
-
-We can take advantage of this by creating some custom errors that we can throw when we want to control exactly what is sent back to the client! First, let's move our error handling middleware into it's own file.
-
-1. Create a new file inside the `middleware` directory called `custom_errors.js`.
-1. Move the bottom-most  middleware (that we just added) from `index.js` to a method called `handleErrors` in `custom_errors.js`. We also need to export it!
-```js
-const handleErrors = (err, req, res, next) => {
-    // If the error contains a status code, set the 
-    // set the variable to that code
-    // if not, set it to a default 500 code
-    const statusCode = err.statusCode || 500
-    // If the error constains a message, set the variable to that message
-    // if not, set it to a generic 'Internal Server Error'
-    const message = err.message || 'Internal Server Error'
-    // Set the status and send the message as a response to the client
-    res.status(statusCode).send(message)
-}
-
-module.exports = { handleErrors }
-```
-
-1. Now we need to update `index.js` to import `handleErrors` at the top, and `app.use` it at the bottom, just before `app.listen`:
-```js
-...
-const { handleErrors } = require('./middleware/custum_errors')
-...
-app.use(handleErrors)
-
-app.listen(process.env.PORT || 8000, ()=>{
-    console.log('SEI MERN AUTH API RUNNING')
+  .catch(err=>{console.log('ERROR CREATING USER:', err)})
 })
 ```
 
 
-1. Inside `custom_errors.js`, we'll start by defining a bunch of custom error types. The easiest way to do this is with ES6 class syntax. Add the following code to `custom_errors.js` file:
-
-```js
-// Require Mongoose so we can use it later in our handlers
-const mongoose = require('mongoose');
-
-// Create some custom error types by extending the Javascript
-// `Error.prototype` using the ES6 class syntax.  This  allows
-// us to add arbitrary data for our status code to the error
-// and dictate the name and message.
-class BadCredentialsError extends Error {
-  constructor() {
-    super();
-    this.name = 'BadCredentialsError';
-    this.statusCode = 422;
-    this.message = 'The provided username or password is incorrect';
-  }
-}
-
-class OwnershipError extends Error {
-  constructor() {
-    super();
-    this.name = 'OwnershipError';
-    this.statusCode = 401;
-    this.message =
-      'The provided token does not match the owner of this document';
-  }
-}
-
-class DocumentNotFoundError extends Error {
-  constructor() {
-    super();
-    this.name = 'DocumentNotFoundError';
-    this.statusCode = 404;
-    this.message = "The provided ID doesn't match any documents";
-  }
-}
-
-class BadParamsError extends Error {
-  constructor() {
-    super();
-    this.name = 'BadParamsError';
-    this.statusCode = 422;
-    this.message = 'A required parameter was omitted or invalid';
-  }
-}
-
-class InvalidIdError extends Error {
-  constructor() {
-    super();
-    this.name = 'InvalidIdError';
-    this.statusCode = 422;
-    this.message = 'Invalid id';
-  }
-}
-```
+---
+>>>>>>>>>>>>>>>>>>>>>>>>>>BELOW THIS LINE IS DRAFT<<<<<<<<<<<<<<<<<<<<<<<<<<
+---
 
 
 ## Add Authorization
@@ -760,74 +629,6 @@ class InvalidIdError extends Error {
 Along with authenticating the user, we now have to handle user authorization. What's the difference? When the user logs into the system successfully, we _authenticate_ them based on the credentials they send (such as a proper combination of email and password). Authorization means determining whether the user is actually authorized to perform some action in the system.
 
 With the token, we can determine which user is making a request. With that information, we can determine if the specific user making the request is _authorized_ to carry out a specific action, such as create documents or delete or update a specific document.
-
-To add this functionality, we have to change up the update and delete methods that we're using because we want to test that the user is allowed to update/delete the record before we carry out that operation. So, we'll use the `findById` method, check the that user is authorized for that document, then we'll separately do the delete or update.
-
-1. Update the handleValidateId function in `middleware/error_handler.js` as follows:
-
-```js
-const handleValidateOwnership = (req, document) => {
-  const ownerId = document.owner._id || document.owner;
-  // Check if the current user is also the owner of the document
-  if (!req.user._id.equals(ownerId)) {
-    throw new OwnershipError();
-  } else {
-    return document;
-  }
-};
-```
-
-2. Open the `controllers/jobs.js`.
-3. Add `handleValidateOwnership` to the destructured require statement for error handlers and include the `requireToken` from auth.
-
-```js
-const {
-  handleValidateId,
-  handleRecordExists,
-  handleValidateOwnership,
-} = require('../middleware/custom_errors');
-const { requireToken } = require('../middleware/auth');
-```
-
-4. Update the POST, PUT and DELETE routes as follows:
-
-```js
-// CREATE
-// POST api/jobs
-router.post('/', requireToken, (req, res, next) => {
-  Job.create({ ...req.body, owner: req.user._id })
-    .then((job) => res.status(201).json(job))
-    .catch(next);
-});
-
-// UPDATE
-// PUT api/jobs/5a7db6c74d55bc51bdf39793
-router.put('/:id', handleValidateId, requireToken, (req, res, next) => {
-  Job.findById(req.params.id)
-    .then(handleRecordExists)
-    .then((job) => handleValidateOwnership(req, job))
-    .then((job) => job.set(req.body).save())
-    .then((job) => {
-      res.json(job);
-    })
-    .catch(next);
-});
-
-// DESTROY
-// DELETE api/jobs/5a7db6c74d55bc51bdf39793
-router.delete('/:id', handleValidateId, requireToken, (req, res, next) => {
-  Job.findById(req.params.id)
-    .then(handleRecordExists)
-    .then((job) => handleValidateOwnership(req, job))
-    .then((job) => job.remove())
-    .then(() => {
-      res.sendStatus(204);
-    })
-    .catch(next);
-});
-```
-
-Phew... that was a lot! All that's left now is to add the sign out feature.
 
 ## Setup Postman to Run Tests Sequentially
 

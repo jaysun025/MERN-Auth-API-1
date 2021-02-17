@@ -12,6 +12,7 @@ const options = {
 }
 
 const userSchema = new mongoose.Schema({
+    motto: String,
     email: {
         type: String,
         required: true,
