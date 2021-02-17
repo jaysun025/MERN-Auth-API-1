@@ -30,7 +30,6 @@ passport.use(strategy)
 passport.initialize()
 
 const createUserToken = (req, user) => {
-    console.log('process.env.JWT_SECRET:', process.env.JWT_SECRET)
     // first, we check the password using bcrypt (you'll need to import it!)
     const validPassword = req.body.password ? 
         bcrypt.compareSync(req.body.password, user.password) : false

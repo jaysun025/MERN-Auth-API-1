@@ -554,14 +554,28 @@ const createUserToken = (req, user) => {
 
 module.exports = { createUserToken }
 ```
-### Finish the login route
+### Update Auth routes to respond with token
 
-1. Import `createUserToken` into the users controller so we can call it in our `login` route:
-
+1. Import `createUserToken` into the users controller so we can call it in our routes:
 ```js
-...
 const { createUserToken } = require('../middleware/auth')
-...
+```
+
+1. Update signup route to send back token instead of the user:
+```js
+router.post('/signup', (req, res, next) => {
+  bcrypt.hash(req.body.password, 10)
+  .then(hash => ({email: req.body.email, password : hash }))
+  .then(hashedUser => User.create(hashedUser))
+//.then(createdUser => res.status(201).json(createdUser))
+  .then(createdUser => createUserToken(req, createdUser))
+  .then(token => res.json({token}))
+  .catch(next)
+})
+```
+
+1. Finish login route:
+```js
 // POST /api/login
 router.post('/login', (req, res)=>{
   User.findOne({email: req.body.email})
@@ -583,6 +597,143 @@ Make sure to change your secret to `process.env.JWT_SECRET` in `auth.js` where y
 Test it one more time to make sure all is good by logging in a user again (you may need to restart nodemon).
 
 We're so close to done now! All that's left is to set up our job route to use the token! Add and commit your changes.
+
+### HTTP Status Codes
+
+Our Express API is coming along, but before we add our User model, we need to fix some things. So far, we're kind of breaking a lot of rules when it comes to the HTTP request-response cycle. For one, we're not responding to **all** requests &mdash; only the ones that execute flawlessly. We're not handling any of the error cases. ExpressJS will help us out with some errors by sending a generic 500 server error, but in many cases, we're on our own and the system is simply left to hang :frowning:.
+
+Another issue is that we're not setting the status codes on our responses, so every successful response is the default `200 OK`. Setting acurate status codes is not simply prescribed by REST architecture best practices. [HTTP response status codes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status) are part of the rules defined by HTTP that govern the Web! Plus, it turns out that it's really easy to change the status codes within Express APIs, so letʼs do that:
+
+1. Add a [201 status code](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/201) to the sign up response:
+```js
+router.post('/signup', (req, res, next) => {
+  bcrypt.hash(req.body.password, 10)
+  .then(hash => ({email: req.body.email, password : hash }))
+  .then(hashedUser => User.create(hashedUser))
+  .then(createdUser => createUserToken(req, createdUser))
+  .then(token => res.status(201).json({token}))
+  .catch(next)
+})
+```
+
+### Middleware in a Nutshell
+Pretty much everything in Express is a form of middleware. Whenever a request is received by the server, each piece of middleware is called in the order that it is used in our index file (i.e., where it is invoked with `app.use()`). Each middleware is passed the request and the response objects from Express as arguments along with a third argument method that is commonly referred to as `next`. So, any middleware can use the values in the request object or even send a response back to the client. More often than not though, middleware will simply do ‘something’ and then pass the request on to the next piece of middleware in the chain until it reaches one of our controllers where we are explicitly handling the response.
+
+It turns out that our controllers are also a form of middleware, meaning that they too can be passed a `next` argument. This is helpful to handle errors that occur. Let’s change all our routes to include a third parameter called `next` and then we'll pass it to the `.catch()` method. With this change, our routes will now look like this:
+
+```js
+// SIGN UP
+// POST /api/signup
+router.post('/signup', (req, res, next) => {
+  bcrypt.hash(req.body.password, 10)
+  .then(hash => ({email: req.body.email, password : hash }))
+  .then(hashedUser => User.create(hashedUser))
+  .then(createdUser => res.status(201).json(createdUser))
+  .catch(next)
+})
+
+// LOG IN
+// POST /api/login
+router.post('/login', (req, res, next)=>{
+    User.findOne({email: req.body.email})
+    .then(foundUser=>createUserToken(req, foundUser))
+    .then(token=>res.json({token}))
+    .catch(next)
+})
+```
+
+### Handling Errors in Express APIs
+
+In production environments, we might have dozens of errors that we explicitly handle. We're going to handle just a few of the common ones to cover the following scenarios:
+
+- No document is found in the database matching a query by id. Should respond with 404 Not Found.
+- An id is not a valid MongoDB id. Should respond with 404 Not Found.
+- The data provided with the request isn't valid according to our schema (such as not supplying a required property). Should respond with 422 Unprocessable Entity.
+- The user doesn't have the required authorization to delete, edit or create a new document. Should respond with 401 Unauthorized.
+- A generic catch all for any other errors that occur. Should respond with 500 Internal Server Error.
+
+Add the following to the `index.js` file right before our variable where we define the port on which our server is running. Be sure it comes **AFTER** all of our controllers, as this is the last thing that will be run in the middleware chain! This will be invoked anytime our app hits a `.catch(next)` in a route (i.e. anytime an error is thrown).
+
+```js
+// The last middleware receives any error as its first argument
+app.use((err, req, res, next) => {
+  // If the error contains a statusCode, set the variable to that code
+  // if not, set it to a default 500 code
+  const statusCode = err.statusCode || 500;
+  // If the error contains a message, set the variable to that message
+  // if not, set it to a generic 'Internal Server Error'
+  const message = err.message || 'Internal Server Error';
+  // Set the status and send the message as a response to the client
+  res.status(statusCode).send(message);
+});
+```
+
+Try logging in a user that doesn't exist to see this in action.
+
+Any time an error is thrown in a promise chain, it will be handled by the `.catch()` method which invokes the `next` callback and passes it the error as an argument. When `next` is called with any value, [Express automatically treats the argument it is passed as an error](https://expressjs.com/en/guide/error-handling.html) and sends it to our middleware above. If the error is thrown _outside_ a promise chain, it also automatically gets sent to the middleware above simply because it's an error.
+
+We can take advantage of this by creating some custom errors that we can throw when we want to control exactly what is sent back to the client!
+
+We can take advantage of this by creating some custom errors that we can throw when we want to control exactly what is sent back to the client!
+
+1. Create a new file inside the `middleware` directory called `custom_errors.js`.
+1. Inside `custom_errors.js`, we'll start by defining a bunch of custom error types. The easiest way to do this is with ES6 class syntax. Add the following code to `custom_errors.js` file:
+
+```js
+// Require Mongoose so we can use it later in our handlers
+const mongoose = require('mongoose');
+
+// Create some custom error types by extending the Javascript
+// `Error.prototype` using the ES6 class syntax.  This  allows
+// us to add arbitrary data for our status code to the error
+// and dictate the name and message.
+class BadCredentialsError extends Error {
+  constructor() {
+    super();
+    this.name = 'BadCredentialsError';
+    this.statusCode = 422;
+    this.message = 'The provided username or password is incorrect';
+  }
+}
+
+class OwnershipError extends Error {
+  constructor() {
+    super();
+    this.name = 'OwnershipError';
+    this.statusCode = 401;
+    this.message =
+      'The provided token does not match the owner of this document';
+  }
+}
+
+class DocumentNotFoundError extends Error {
+  constructor() {
+    super();
+    this.name = 'DocumentNotFoundError';
+    this.statusCode = 404;
+    this.message = "The provided ID doesn't match any documents";
+  }
+}
+
+class BadParamsError extends Error {
+  constructor() {
+    super();
+    this.name = 'BadParamsError';
+    this.statusCode = 422;
+    this.message = 'A required parameter was omitted or invalid';
+  }
+}
+
+class InvalidIdError extends Error {
+  constructor() {
+    super();
+    this.name = 'InvalidIdError';
+    this.statusCode = 422;
+    this.message = 'Invalid id';
+  }
+}
+```
+
 
 ## Add Authorization
 
