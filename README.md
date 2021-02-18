@@ -14,7 +14,7 @@ First let's quickly set up a basic project environment.
 1. Run `git init` to initialize the repository for Git.
 1. Create a `.gitignore` and add the node_modules directory to it with `echo node_modules > .gitignore`.
 1. Create a `.env` file with `touch .env` and add it to your `.gitignore` with `echo .env >> .gitignore`.
-1. Create an `index.js` file with `touch index.js`.
+1. Create an entry point file with `touch index.js` (or whatever you called your entry point).
 1. Create some directories inside your project to organize your code with `mkdir models db controllers middleware`.
 1. Run `npm init -y` to initialize the repository for npm.
 1. Install dependencies with `npm i express cors mongoose dotenv`.
@@ -50,10 +50,7 @@ First, let's set our app up to use Atlas instead of our local mongo database.
 [DOCS](https://docs.atlas.mongodb.com/getting-started/)
 
 1. Create a an account [here](https://account.mongodb.com/account/register)
-
-2. Create a free tier cluster by following [these instructions](https://docs.atlas.mongodb.com/tutorial/deploy-free-tier-cluster/)
- * **NOTE:** Step 3's screenshots haven't been updated so it may look a little different when you do it. Just make sure to choose the *free* tier.
- * **TODO:** Add notes about why you may pick one region over another.
+2. Create a free tier cluster by following [these instructions](https://docs.atlas.mongodb.com/tutorial/deploy-free-tier-cluster/) and choose the region closest to you for fastest access.
 3. Go to Securty > Network Access (from menu on left of page) to [Whitelist your IP address](https://docs.atlas.mongodb.com/tutorial/whitelist-connection-ip-address/)
  * Whitelist your current IP address and also click the *allow access from anywhere* button
 4. Go to Security > Database Access to [add a user](https://docs.atlas.mongodb.com/tutorial/create-mongodb-user-for-cluster/)
