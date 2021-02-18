@@ -71,8 +71,9 @@ First, let's set our app up to use Atlas instead of our local mongo database.
 const mongoose = require('mongoose');
 const DB_CONNECTION_STRING = `<put your connection string here>`
 
-mongoose.connect(DB_CONNECTION_STRING)
-  .then(instance => {
+mongoose
+  .connect(DB_CONNECTION_STRING)
+  .then(instance =>
     console.log(`Connected to db: ${instance.connections[0].name}`)
   })
   .catch((error) => console.log('Connection failed!', error));
