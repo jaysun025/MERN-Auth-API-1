@@ -71,11 +71,10 @@ First, let's set our app up to use Atlas instead of our local mongo database.
 const mongoose = require('mongoose');
 const DB_CONNECTION_STRING = `<put your connection string here>`
 
-mongoose
-  .connect()
-  .then((DB_CONNECTION_STRING) =>
+mongoose.connect(DB_CONNECTION_STRING)
+  .then(instance => {
     console.log(`Connected to db: ${instance.connections[0].name}`)
-  )
+  })
   .catch((error) => console.log('Connection failed!', error));
 
 module.exports = mongoose;
@@ -97,8 +96,7 @@ Connected to db: job-board
 3. Let's get rid of the warnings by modifying the `mongoose.connect()` method like so [mongoose deprecation docs](https://mongoosejs.com/docs/deprecations.html):
 
 ```js
-mongoose
-  .connect(DB_CONNECTION_STRING, {
+mongoose.connect(DB_CONNECTION_STRING, {
     useNewUrlParser: true,
     useCreateIndex: true,
     useUnifiedTopology: true,
@@ -392,7 +390,7 @@ Once initialized, weʼll run the passport strategy as route middleware. When run
 ```bash
 npm i passport
 ```
-1. import it into `auth.js`. Stub out the generic passport structure:
+3. import it into `auth.js`. Stub out the generic passport structure:
 
 ```js
 const passport = require('passport')
@@ -409,11 +407,11 @@ passport.use(strategy)
 passport.initialize()
 ```
 
-1. Install passport's [JWT strategy](http://www.passportjs.org/packages/passport-jwt/)
+4. Install passport's [JWT strategy](http://www.passportjs.org/packages/passport-jwt/)
 ```bash
 npm i passport-jwt
 ```
-1. import the `Strategy` constructor from `passport-jwt and construct the strategy:
+5. import the `Strategy` constructor from `passport-jwt and construct the strategy:
 ```js
 const passport = require('passport')
 const Strategy = require('passport-jwt').Strategy
@@ -423,7 +421,7 @@ const strategy = new Strategy(options, findUser)
 
 ...
 ```
-1. Create an `options` object that we'll pass into the `Strategy` constructor.
+6. Create an `options` object that we'll pass into the `Strategy` constructor.
 ```js
 const Strategy = require('passport-jwt').Strategy
 
@@ -432,7 +430,7 @@ const options = {}
 // construct the strategy (will define options and findUser soon)
 const strategy = new Strategy(options, findUser)
 ```
-1. The options object requires a `secretOrKey` field
+7. The options object requires a `secretOrKey` field
 
 ```js
 const Strategy = require('passport-jwt').Strategy
@@ -444,7 +442,7 @@ const options = {
 // construct the strategy (will define options and findUser soon)
 const strategy = new Strategy(options, findUser)
 ```
-1. The other required option field is `jwtFromRequest`. This has to be a function that accepts the request object as the only parameter and returns either the JWT as a string or null. This is called an *extractor function* because extracts and deserializes the JWT from the request object. Passport provides several built-in extractor functions and we will use `fromAuthHeaderAsBearerToken()`, which looks for the JWT in the authorization header with the scheme 'bearer'. Visit the passport docs on [extracting the JWT from the request](http://www.passportjs.org/packages/passport-jwt/#extracting-the-jwt-from-the-request) for more details.
+8. The other required option field is `jwtFromRequest`. This has to be a function that accepts the request object as the only parameter and returns either the JWT as a string or null. This is called an *extractor function* because extracts and deserializes the JWT from the request object. Passport provides several built-in extractor functions and we will use `fromAuthHeaderAsBearerToken()`, which looks for the JWT in the authorization header with the scheme 'bearer'. Visit the passport docs on [extracting the JWT from the request](http://www.passportjs.org/packages/passport-jwt/#extracting-the-jwt-from-the-request) for more details.
 
 ```js
 const Strategy = require('passport-jwt').Strategy
@@ -457,19 +455,19 @@ const options = {
 }
 ```
 
-1. Now we need to write the verification callback that gets passed as the second argument to the `Strategy` constructor. This callback is where we write custom code to go get the user's info from the database based on the token info. It will receive two arguments automatically:
+9. Now we need to write the verification callback that gets passed as the second argument to the `Strategy` constructor. This callback is where we write custom code to go get the user's info from the database based on the token info. It will receive two arguments automatically:
 * The deserialized JWT payload that has been extracted from the request object, which will contain the user's id
 * A `done` callback that is ready to receive the user object and pass it onto our routes. It takes any errors that happen along the way as the first argument, and the user object as the second.
 
 ```js
-const findUser = (jwt_payload, done) {
+const findUser = (jwt_payload, done) => {
   User.findById(jwt_payload.id)
-    .then(foundUser => done(null, user))
+    .then(foundUser => done(null, foundUser))
     .catch(err => done(err))
 }
 ```
 
-1. Each time the user logs in, we'll need to create a token for them. We will create a function that uses the [jsonwebtoken](https://www.npmjs.com/package/jsonwebtoken) `.sign` method to turn the user id and secret into a JWT using the RSA SHA256 algorithm. RSA SHA256 will first hash the user id and the secret using the SHA256 algorithm, then encrypt that hash using the RSA algorithm.
+10. Each time the user logs in, we'll need to create a token for them. We will create a function that uses the [jsonwebtoken](https://www.npmjs.com/package/jsonwebtoken) `.sign` method to turn the user id and secret into a JWT using the RSA SHA256 algorithm. RSA SHA256 will first hash the user id and the secret using the SHA256 algorithm, then encrypt that hash using the RSA algorithm.
 
  First install the package and import it into the `auth.js` file:
 ```bash
@@ -479,7 +477,7 @@ npm install jsonwebtoken
 const jwt = require('jsonwebtoken')
 ```
 
-1. Now we import bcrypt and write the function to be exported:
+11. Now we import bcrypt and write the function to be exported:
 
 ```js
 ...
@@ -517,7 +515,7 @@ const createUserToken = (req, user) => {
 }
 ```
 
-1. Now export `createUserToken` at the bottom of `auth.js` so we can use it in our `/api/login` route. So far, your `auth.js` should look like this:
+12. Now export `createUserToken` at the bottom of `auth.js` so we can use it in our `/api/login` route. So far, your `auth.js` should look like this:
 
 ```js
 const passport = require('passport')
@@ -564,7 +562,7 @@ module.exports = { createUserToken }
 const { createUserToken } = require('../middleware/auth')
 ```
 
-1. Update signup route to send back token instead of the user:
+2. Update signup route to send back token instead of the user:
 ```js
 router.post('/signup', (req, res, next) => {
   bcrypt.hash(req.body.password, 10)
@@ -577,7 +575,7 @@ router.post('/signup', (req, res, next) => {
 })
 ```
 
-1. Finish login route:
+3. Finish login route:
 ```js
 // POST /api/login
 router.post('/login', (req, res)=>{
@@ -591,7 +589,7 @@ Now use Postman to try out both of these routes. You should get a token as the r
 
 Head over to [jwt.io](https://jwt.io/) to see your token decoded and you can read about the anatomy of a JSON Web Token [here](https://scotch.io/tutorials/the-anatomy-of-a-json-web-token).
 
-1. Now that we know everything is working right, let's move our secret to our `.env` and make it an environment variable called `JWT_SECRET`.
+4. Now that we know everything is working right, let's move our secret to our `.env` and make it an environment variable called `JWT_SECRET`.
 
 ```
 JWT_SECRET=some string value only your app knows
@@ -644,7 +642,7 @@ Try hitting this route in postman. No problem, right? Wrong! This means any joe 
 const passport = require('passport')
 ```
 
-1. Then add the `passport.authenticate` middleware to the route:
+2. Then add the `passport.authenticate` middleware to the route:
 
 ```js
 // PRIVATE
@@ -659,7 +657,7 @@ router.get('/private', passport.authenticate('jwt', {session: false}), (req, res
 
 Now try to hit the route in postman - what happens? You're not authorized!
 
-1. You will likely have several routes that need this middelware, so let's make writing it out a little more concise. Store this method in a variable called `requireToken` at the bottom of `auth.js` and add it to the export:
+3. You will likely have several routes that need this middelware, so let's make writing it out a little more concise. Store this method in a variable called `requireToken` at the bottom of `auth.js` and add it to the export:
 
 ```js
 // Create a variable that holds the authenticate method so we can
@@ -669,7 +667,7 @@ const requireToken = passport.authenticate('jwt', {session: false})
 module.exports = { createUserToken, requireToken }
 ```
 
-1. Now just add `requireToken` to the import at the top of the user controller, and replace it in the route arguments:
+4. Now just add `requireToken` to the import at the top of the user controller, and replace it in the route arguments:
 
 ```js
 ...
